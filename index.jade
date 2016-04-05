@@ -2,7 +2,7 @@ doctype html
 //- basic libraries: jquery(1.10.2), d3js(3.5.4), angularjs(1.2.3), bootstrap(3.0)/semantic-ui(0.9.3/0.9.5)
 //-                  fontawesome(4.4.0), reactjs(0.14.0)
 - var use = { cdn: false, og: false, favicon: true }
-- var lib = { jquery: true, d3js: true, angular: true, bootstrap: true, semantic: false, fontawesome: true, reactjs: false }
+- var lib = { jquery: true, d3js: true, angular: true, bootstrap: false, semantic: false, fontawesome: false, reactjs: false }
 - var assets = "assets"
 - var favicon = "thumbnail.png"
 - var title = "template"
@@ -25,8 +25,10 @@ html(lang="en")
     // libraries
     include library.jade
     // custom files
+    link(href='https://fonts.googleapis.com/css?family=Merriweather',rel='stylesheet',type='text/css')
     link(rel="stylesheet",type="text/css",href="index.css")
-    script(type="text/javascript",src="index.js")
+    script(type="text/javascript",src="work.js")
   body
     #root
-      svg
+      #container
+        svg
