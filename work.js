@@ -27,11 +27,12 @@ Chart.prototype = {
   },
   init: function() {
     var that = this;
+    this.popup = d3.select(this.root).select("#popup");
     this.svg = d3.select(this.root).select("svg");
     this.calendar = this.svg.append("g").attr({class: "calendar"})
     this.xAxisGroup = this.svg.append("g").attr({class: "axis horizontal"});
-    this.popup = this.svg.append("g").attr({class: "popup"});
-    this.popup.selectAll("path.ratio").data([0,0,0,0,0,0]).enter().append("path").attr({class: "ratio"});
+    this.popdonut = this.svg.append("g").attr({class: "popup-donut"});
+    this.popdonut.selectAll("path.ratio").data([0,0,0,0,0,0]).enter().append("path").attr({class: "ratio"});
     this.parsed = d3.nest().key(function(it) {
       return parseInt((it.date.getTime() - it.date.getDay() * 86400 * 1000) / 86400000) * 86400000;
     }).entries(this.data);
@@ -41,7 +42,6 @@ Chart.prototype = {
         return it.date.getDay();
       }).entries(week.values);
     });
-    console.log(this.parsed);
   },
   pad: function(v, len) {
     if(typeof(len)=="undefined") len = 2;
@@ -102,12 +102,17 @@ Chart.prototype = {
         that.pack.size([d.radius * 2, d.radius * 2]).nodes({children: d.values});
         pie.selectAll("path.data").data(d.values).enter().append("path").attr({class: "data"})
         .on("click", function(data,i) {
-          console.log(data);
-          popup = that.popup[0][0];
-          popup.parentNode.removeChild(popup);
-          this.parentNode.appendChild(popup);
+          var box = that.popup[0][0].getBoundingClientRect();
+          that.popup.style({
+            position: "absolute",
+            top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
+            left: ( d3.event.clientX - box.width / 2) + "px",
+          });
+          popdonut = that.popdonut[0][0];
+          popdonut.parentNode.removeChild(popdonut);
+          this.parentNode.appendChild(popdonut);
           that.partition({children: data.ratio});
-          that.popup.selectAll("path.ratio").data(data.ratio).attr({
+          that.popdonut.selectAll("path.ratio").data(data.ratio).attr({
 
             fill: function(d,i) {
               return d3.rgb(that.color(data.category)).darker(3).brighter(i).toString();
@@ -139,7 +144,7 @@ Chart.prototype = {
   },
   resize: function() {
     var that = this;
-    var box = this.root.getBoundingClientRect();
+    this.box = this.root.getBoundingClientRect();
     this.maxIndex = 200; // experience value
     this.weekHeight = 145; // suggested minimum: 135
     this.radius = 40; // 0 for auto
@@ -150,16 +155,16 @@ Chart.prototype = {
     this.labelsWidth = 140;
     this.xAxisHeight = 60;
     this.height = (this.weekHeight * ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin);
-    this.height = (this.height > box.height ? this.height : box.height);
+    this.height = (this.height > this.box.height ? this.height : this.box.height);
     this.radius = (this.radius > (this.weekHeight - 2 * this.weekPadding ) / 2
         ? ( this.weekHeight - 2 * this.weekPadding ) / 2 
         : ( this.radius < 24 ? 24 : this.radius )
     );
     this.dayWidth = (this.dayWidth - 2 * this.dayPadding >= this.radius * 2? this.dayWidth : this.radius * 2);
     this.svg.attr({
-      width: box.width,
+      width: this.box.width,
       height: this.height,
-      viewBox: [0,0,box.width,this.height].join(" ")
+      viewBox: [0,0,this.box.width,this.height].join(" ")
     });
     this.arc = d3.svg.arc().innerRadius(0).outerRadius(this.radius);
     this.partition = d3.layout.partition().size([Math.PI * 2, 1]);
