@@ -72,6 +72,56 @@ Chart.prototype = {
       [d.getYear() + 1900, d.getMonth(), d.getDate()].join("/")
     }).join(" - ");
   },
+
+  popupfunc: function(node,data,i) {
+    var that = this;
+    that.popup.style({
+      display: (!data || data == that.lastdata ? "none" : "block")
+    });
+    var box = that.popup[0][0].getBoundingClientRect();
+    if(data) that.popup.style({
+      position: "absolute",
+      top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
+      left: ( d3.event.clientX - box.width / 2) + "px"
+    });
+    if(node) {
+      popdonut = that.popdonut[0][0];
+      popdonut.parentNode.removeChild(popdonut);
+      node.parentNode.appendChild(popdonut);
+    }
+    if(data) {
+      that.partition({children: data.ratio});
+      that.popdonut.selectAll("path.ratio").data(data.ratio).attr({
+        fill: function(d,i) {
+          return d3.rgb(that.color(data.category)).darker(3).brighter(i).toString();
+        },
+        stroke: "#fff",
+        "stroke-width": 1,
+        opacity: 0.8,
+        transform: function(d,i) {
+          return [
+            "translate(",
+            data.x - data.outradius,
+            data.y - data.outradius,
+            ")"
+          ].join(" ");
+        }
+      });
+    }
+    r = (data?data.r:(that.lastdata?that.lastdata.r:0));
+    if(that.lastdata || data) that.popdonut.selectAll("path.ratio")
+      .transition().duration(500).ease("exp-out").attrTween("d", function(d,i) {
+        return function(t) {
+          return that.arc
+            .padRadius(0.01)
+            .startAngle(d.x)
+            .endAngle(d.x + d.dx)
+            .innerRadius(r + 1 * (that.lastdata?t:1 - t))
+            .outerRadius(r + 7 * (that.lastdata?t:1 - t))();
+        };
+      });
+    that.lastdata = (that.lastdata == data ? null : data);
+  },
   bind: function() {
     var that = this;
     this.xAxisGroup.selectAll("g.tick").data([0,1,2,3,4,5,6])
@@ -105,43 +155,10 @@ Chart.prototype = {
         d.values.forEach(function(it) { delete it.parent; });
 
         pie.selectAll("path.data").data(d.values).enter().append("path").attr({class: "data"})
-        .on("click", function(data,i) {
-          var box = that.popup[0][0].getBoundingClientRect();
-          that.popup.style({
-            position: "absolute",
-            top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
-            left: ( d3.event.clientX - box.width / 2) + "px",
-            display: "block"
-          });
-          popdonut = that.popdonut[0][0];
-          popdonut.parentNode.removeChild(popdonut);
-          this.parentNode.appendChild(popdonut);
-          that.partition({children: data.ratio});
-          that.popdonut.selectAll("path.ratio").data(data.ratio).attr({
-            fill: function(d,i) {
-              return d3.rgb(that.color(data.category)).darker(3).brighter(i).toString();
-            },
-            stroke: "#fff",
-            "stroke-width": 1,
-            opacity: 0.8,
-            transform: function(d,i) {
-              return [
-                "translate(",
-                data.x - data.outradius,
-                data.y - data.outradius,
-                ")"
-              ].join(" ");
-            }
-          }).transition().duration(500).ease("exp-out").attrTween("d", function(d,i) {
-            return function(t) {
-              return that.arc
-                .padRadius(0.01)
-                .startAngle(d.x)
-                .endAngle(d.x + d.dx)
-                .innerRadius(data.r + 1 * t)
-                .outerRadius(data.r + 7 * t)();
-            };
-          });
+        .on("click", function(d,i) { 
+          d3.event.stopPropagation();
+          d3.event.preventDefault = true;
+          that.popupfunc(this, d, i);
         })
       });
     });
@@ -424,4 +441,5 @@ window.addEventListener("scroll", function(it) {
     ")"].join(" ")
   });
 });
+window.addEventListener("click", function(it) { chart.popupfunc(); });
 }); //endoffile
