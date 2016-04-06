@@ -19,6 +19,7 @@ Chart.prototype = {
           index: parseInt(Math.random() * 800 + 200) / 10,
           elapsed: parseInt(Math.random() * 30000 + 3000) / 10,
           distance: parseInt(Math.random() * 300 + 50) / 10,
+          rate: parseInt(Math.random() * 30 + 30) / 10,
           ratio: d3.range(6).map(function(it) { return {value: Math.random()}; })
         });
       }
@@ -79,11 +80,16 @@ Chart.prototype = {
       display: (!data || data == that.lastdata ? "none" : "block")
     });
     var box = that.popup[0][0].getBoundingClientRect();
-    if(data) that.popup.style({
-      position: "absolute",
-      top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
-      left: ( d3.event.clientX - box.width / 2) + "px"
-    });
+    if(data) {
+      that.popup.selectAll(".entry .value").data(
+        [data.distance + "公里", data.elapsed + "", data.rate + "km/s", data.index]
+      ).text(function(it) { return it; });
+      that.popup.style({
+        position: "absolute",
+        top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
+        left: ( d3.event.clientX - box.width / 2) + "px"
+      });
+    }
     if(node) {
       popdonut = that.popdonut[0][0];
       popdonut.parentNode.removeChild(popdonut);
@@ -153,7 +159,7 @@ Chart.prototype = {
         var node = d3.select(this);
         var pie = node.append("g").attr({class: "pie"});
         d.values.forEach(function(it) { delete it.parent; });
-
+        node.append("text").attr({class: "weekday"}).text("週" + ["日","一","二","三","四","五","六"][i]);
         pie.selectAll("path.data").data(d.values).enter().append("path").attr({class: "data"})
         .on("click", function(d,i) { 
           d3.event.stopPropagation();
@@ -173,7 +179,7 @@ Chart.prototype = {
         var date = new Date(that.activeDate.key, month).getTime();
         var lastoffset = document.body.scrollTop;
         var offset = that.parsed.filter(function(d,i) { return parseInt(d.key) >date }).length * that.weekHeight;
-        var maxoffset = document.body.getBoundingClientRect().height - window.screen.height;
+        var maxoffset = document.body.getBoundingClientRect().height - window.innerHeight;
         offset += (that.box.top + that.xAxisHeight + that.config.margin - 20);
         //that.offset = offset = (offset > maxoffset ? maxoffset : offset);
         d3.select(document.body).transition().duration(1000).tween("scrolltop", function() {
@@ -203,21 +209,32 @@ Chart.prototype = {
     this.labelsPadding = 20;
     this.labelsWidth = 140;
     this.xAxisHeight = 60;
+    this.rwdbreak = 800;
+    var mobile = (that.width < that.rwdbreak);
     // hard coded day width - not recommend
     //this.dayWidth = 0; // 0 for auto
     //var calWidth = this.width - this.navDateWidth - this.labelsWidth - 2 * this.config.margin - this.labelsPadding;
     //this.dayWidth = (this.dayWidth * 7 > calWidth ? calWidth / 7 : this.dayWidth);
+    if(mobile) {
+      this.weekHeight = (window.innerHeight - that.config.margin * 2) / 7;
+      this.xAxisHeight = 0;
+      this.navDateWidth = 0;
+      this.labelsWidth = this.labelsWidth / 2;
+    }
     this.dayWidth = (
         this.width - this.navDateWidth - this.labelsWidth 
       - 2 * this.config.margin - this.labelsPadding * 2
     ) / 7;
-    this.height = (this.weekHeight * ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin);
+    this.height = ( mobile 
+      ? (( this.weekHeight * 7 )* ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin)
+      : (this.weekHeight * ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin)
+    );
     this.height = (this.height > this.box.height ? this.height : this.box.height);
     this.radius = (this.radius > (this.weekHeight - 2 * this.weekPadding ) / 2
         ? ( this.weekHeight - 2 * this.weekPadding ) / 2 
         : ( this.radius < 24 ? 24 : this.radius )
     );
-    this.dayWidth = (this.dayWidth - 2 * this.dayPadding >= this.radius * 2? this.dayWidth : this.radius * 2);
+    //this.dayWidth = (this.dayWidth - 2 * this.dayPadding >= this.radius * 2? this.dayWidth : this.radius * 2);
     this.svg.attr({
       width: this.width,
       height: this.height,
@@ -255,12 +272,14 @@ Chart.prototype = {
   },
   render: function() {
     var that = this;
+    var mobile = (that.width < that.rwdbreak);
     this.xAxisGroup.attr({
       transform: [
         "translate(",
         (this.labelsWidth + this.labelsPadding + this.config.margin),
         (this.xAxisHeight + this.config.margin),
-        ")"].join(" ")
+        ")"].join(" "),
+      display: (mobile?"none":"block")
     }).selectAll("g.tick").attr({
       transform: function(d,i) {
         return ["translate(",(that.dayWidth * (i + 0.5)),-10,")"].join(" ");
@@ -274,7 +293,13 @@ Chart.prototype = {
     this.svg.selectAll("g.week")
     .attr({
       transform: function(d,i) {
-        return "translate(0," + (50 + i * ( that.weekHeight )) + ")";
+        return [
+          "translate(0,",
+          (mobile
+            ? (50 + i * ( that.weekHeight * 7))
+            : (50 + i * ( that.weekHeight ))
+          ),
+          ")"].join(" ");
       }
     })
     .each(function(d,i) {
@@ -287,44 +312,58 @@ Chart.prototype = {
         "text-anchor": "end",
         "font-size": "0.8em"
       });
-      node.select("line").attr({
+      node.select("line").attr((mobile?{
+        x1: that.config.margin,
+        y1: -50,
+        x2: that.labelsWidth + that.labelsPadding + 7 * that.dayWidth,
+        y2: -50,
+      }:{
         x1: that.labelsWidth + that.labelsPadding,
         y1: 0,
         x2: that.labelsWidth + that.labelsPadding + 7 * that.dayWidth,
-        y2: 0,
+        y2: 0
+      })).attr({
         stroke: "#000",
         opacity: 0.4,
         "stroke-dasharray": "2 3",
         "stroke-width": 1
       });
+      var dy = (mobile?[0,25,65,40,80,105,125]:[0,25,25,40,40,65,85])
+        .map(function(it) { return it + (mobile?that.config.margin:0)});
       node.selectAll("text.label").attr({ "font-weight": 900, opacity: 0.5, "font-size": "0.7em" });
-      node.select("text.distance.label").attr({ dy: 25, dx: that.labelsWidth});
-      node.select("text.elapsed.label").attr({ dy: 25,  dx: 60});
-      node.select("text.distance.value").attr({ dy: 40, dx: that.labelsWidth});
-      node.select("text.elapsed.value").attr({ dy: 40,  dx: 60});
-      node.select("text.period").attr({
-        dx: that.labelsWidth
-      });
-      node.select("text.index.label").attr({
-        dy: 65, dx: that.labelsWidth,
-      });
-      node.select("text.index.value").attr({
-        dy: 85, dx: that.labelsWidth,
-        "font-size": "1.6em"
-      });
+      node.select("text.distance.label").attr({ dy: dy[1], dx: that.labelsWidth});
+      node.select("text.elapsed.label").attr({ dy: dy[2],  dx: 60});
+      node.select("text.distance.value").attr({ dy: dy[3], dx: that.labelsWidth});
+      node.select("text.elapsed.value").attr({ dy: dy[4],  dx: 60});
+      node.select("text.period").attr({ dy: dy[0], dx: that.labelsWidth });
+      node.select("text.index.label").attr({ dy: dy[5], dx: that.labelsWidth, });
+      node.select("text.index.value").attr({ dy: dy[6], dx: that.labelsWidth, "font-size": "1.6em" });
       node.selectAll("g.day")
       .attr({
         transform: function(d,i) { 
-          return [
-            "translate(",
-            (that.labelsWidth + that.labelsPadding + (i + 0.5) * that.dayWidth),
-            0,
-            ")"
-          ].join(" ");
+          if(mobile) {
+            return [
+              "translate(",
+              that.width / 2,
+              that.weekHeight * (6 - i) * 0.8,
+              ")"
+            ].join(" ");
+          } else {
+            return [
+              "translate(",
+              (that.labelsWidth + that.labelsPadding + (i + 0.5) * that.dayWidth),
+              0,
+              ")"
+            ].join(" ");
+          }
         }
       })
       .each(function(data,i) {
         var node = d3.select(this);
+        node.select("text.weekday").attr({
+          dx: that.width / 4,
+          display: (mobile?"block":"none")
+        });
         node.selectAll("path.data").transition().duration(500).attr({
           transform: function(d,i) {
             return (that.config.bubbleMode
@@ -362,8 +401,9 @@ Chart.prototype = {
     });
 
     this.navByDate.attr({
-      transform: "translate(" + (that.width - that.config.margin - that.navDateWidth) + "," + that.offset + ")"
-    }).selectAll("g.navByYear").transition().duration(1000).attr({
+      transform: "translate(" + (that.width - that.config.margin - that.navDateWidth) + "," + that.offset + ")",
+      display: (mobile?"none":"block")
+    }).selectAll("g.navByYear").transition().duration(500).attr({
       transform: function(d,i) {
         var offset = (that.activeDate.key > d.key
           ?  that.activeDate.values.length * 25
@@ -386,7 +426,7 @@ Chart.prototype = {
         "font-size": that.config.fontSize * 1.2,
         dx: 5, dy: 5
       });
-      node.selectAll("g.navByMonth").transition().duration(1000)
+      node.selectAll("g.navByMonth").transition().duration(500)
       .attr({
         transform: function(d,i) {
           return ["translate(",
