@@ -7,6 +7,21 @@ Chart.prototype = {
     fontSize: 12,
     bubbleMode: true
   },
+  typecolor: ["#009999","#ffaa00","#ff0000"],
+  type: [
+    {text: "休閒"},
+    {text: "訓練"},
+    {text: "比賽"},
+  ],
+  rankcolor: ["#eee","#fdd","#fbb","#f97","#f53","#f20"],
+  rank: [
+    {text: "lv 1"},
+    {text: "lv 2"},
+    {text: "lv 3"},
+    {text: "lv 4"},
+    {text: "lv 5"},
+    {text: "lv 6"},
+  ],
   preinit: function() {
     this.root = document.getElementById("container");
     this.data = d3.range(200).map(function(d,i) {
@@ -34,6 +49,7 @@ Chart.prototype = {
     this.navByDate = this.svg.append("g").attr({class: "navByDate"});
     this.calendar = this.svg.append("g").attr({class: "calendar"});
     this.xAxisGroup = this.svg.append("g").attr({class: "axis horizontal"});
+    this.legendGroup = this.svg.append("g").attr({class: "legend-group"});
     this.popdonut = this.svg.append("g").attr({class: "popup-donut"});
     this.popdonut.selectAll("path.ratio").data([0,0,0,0,0,0]).enter().append("path").attr({class: "ratio"});
     this.offset = 0;
@@ -104,6 +120,12 @@ Chart.prototype = {
         left: ( d3.event.clientX - box.width / 2) + "px"
       });
       that.popup.classed("bottom", isBottom);
+      that.legendGroup.selectAll("g.legend.intensity").transition().duration(500).attr({ opacity: 1 });
+      if(mobile) that.legendGroup.selectAll("g.legend.category").transition().duration(500).attr({ opacity: 0 });
+    } 
+    if(data == that.lastdata || !data) {
+      that.legendGroup.selectAll("g.legend.intensity").transition().duration(500).attr({ opacity: 0 });
+      that.legendGroup.selectAll("g.legend.category").transition().duration(500).attr({ opacity: 1 });
     }
     if(node) {
       popdonut = that.popdonut[0][0];
@@ -114,11 +136,13 @@ Chart.prototype = {
       that.partition({children: data.ratio});
       that.popdonut.selectAll("path.ratio").data(data.ratio).attr({
         fill: function(d,i) {
-          return d3.rgb(that.color(data.category)).darker(3).brighter(i).toString();
+          return that.rankcolor[i];
         },
         stroke: "#fff",
         "stroke-width": 1,
-        opacity: 0.8,
+        opacity: function(d,i) {
+          return 0.9;
+        },
         transform: function(d,i) {
           return [
             "translate(",
@@ -214,6 +238,14 @@ Chart.prototype = {
       node.append("rect").attr({class: "year"});
       node.append("text").attr({class: "year"});
     });
+    this.legendGroup.selectAll("g.legend").data(that.type.concat(that.rank))
+    .enter().append("g").attr({class: "legend"}).each(function(d,i) {
+      var node = d3.select(this);
+      node.classed((i > 2?"intensity" :"category"), true).attr({opacity: (i>2?0:1)});
+      node.append("rect");
+      node.append("text");
+    });
+
   },
   resize: function() {
     var that = this;
@@ -270,7 +302,7 @@ Chart.prototype = {
         that.partition(root);
       });
     });
-    this.color = d3.scale.ordinal().range(["#009999","#ffaa00","#ff0000"]);
+    this.color = d3.scale.ordinal().range(that.typecolor);
     this.rscale = d3.scale.linear().domain([0,this.maxIndex]).range([0,this.radius]);
     this.pack = d3.layout.pack()
       .size([ this.dayWidth, this.weekHeight ])
@@ -476,6 +508,59 @@ Chart.prototype = {
         });
       });
     });
+
+    this.legendGroup.selectAll("g.legend").attr({
+      transform: function(d,i) {
+        if(mobile) i = (i > 2 ? i -= 3 : i);
+        else i = i + ( i > 2? 1 : 0);
+        return "translate(0," + (-that.config.fontSize * 1.5 * i) + ")";
+      }
+    }).each(function(d,i) {
+      var node = d3.select(this);
+      node.select("rect").attr({
+        width: that.config.fontSize,
+        height: that.config.fontSize,
+        fill: (i>2?that.rankcolor[i - 3]:that.typecolor[i])
+      });
+      node.select("text").attr({
+        dx: that.config.fontSize * 1.5,
+        dy: that.config.fontSize,
+        "font-weight": 200,
+        opacity: 0.8
+      }).text(d.text);
+    });
+    this.scroll();
+  },
+  scroll: function() {
+    var mobile = (chart.width < chart.rwdbreak);
+    if(chart.scrollHandler) clearTimeout(chart.scrollHandler);
+    chart.offset = document.body.scrollTop;
+    chart.navByDate.attr({
+      transform: [
+        "translate(",
+        (chart.width - chart.config.margin - chart.navDateWidth),
+        chart.offset,
+      ")"].join(" ")
+    });
+    chart.legendGroup.attr({
+      transform: function() {
+        return (mobile
+          ? [
+            "translate(",
+            (chart.config.margin),
+            (parseInt(
+              ( chart.offset + window.innerHeight / 4) / (chart.weekHeight * 7)
+            ) * (chart.weekHeight * 7) + window.innerHeight - 70),
+            ")"
+          ]
+          : [
+            "translate(",
+            (chart.width - (chart.navDateWidth)),
+            (chart.offset + window.innerHeight - 70),
+            ")"
+          ]).join(" ")
+      }
+    })
   }
 };
 
@@ -496,17 +581,6 @@ window.addEventListener("resize", function(it) {
   chart.render();
 });
 
-window.addEventListener("scroll", function(it) {
-  var mobile = (chart.width < chart.rwdbreak);
-  if(chart.scrollHandler) clearTimeout(chart.scrollHandler);
-  chart.offset = document.body.scrollTop;
-  chart.navByDate.attr({
-    transform: [
-      "translate(",
-      (chart.width - chart.config.margin - chart.navDateWidth),
-      chart.offset,
-    ")"].join(" ")
-  });
-});
+window.addEventListener("scroll", chart.scroll);
 window.addEventListener("click", function(it) { chart.popupfunc(); });
 }); //endoffile
