@@ -9,7 +9,7 @@ Chart.prototype = {
   },
   preinit: function() {
     this.root = document.getElementById("container");
-    this.data = d3.range(100).map(function(d,i) {
+    this.data = d3.range(200).map(function(d,i) {
       var ret = [];
       var count = (Math.random()>0.5?(Math.random()>0.8?3:2):1);
       for(var i=0;i<count;i++) {
@@ -46,6 +46,11 @@ Chart.prototype = {
         return it.date.getDay();
       }).entries(week.values);
     });
+    var recentMaxWeekDay = d3.max(this.parsed[0].days.map(function(it) { return parseInt(it.key); }));
+    for(var item,i = recentMaxWeekDay + 1; i < 7; i++) {
+      item = {key: i+"", values: [{shadow: true}], shadow: true};
+      this.parsed[0].days.push(item);
+    }
     this.dates = d3.nest().key(function(it) { return it[0]; }).entries(
       this.data.map(function(it) { return [it.date.getYear() + 1900, it.date.getMonth() + 1]})
     )
@@ -54,6 +59,7 @@ Chart.prototype = {
     this.dates.forEach(function(d,i) { d.values.sort(function(a,b) { return b - a; }); });
 
     this.activeDate = this.dates[0];
+
   },
   pad: function(v, len) {
     if(typeof(len)=="undefined") len = 2;
@@ -61,34 +67,43 @@ Chart.prototype = {
     len = len - v.length;
     return (new Array(len>0?len:0).join("0") + v);
   },
+  prettyDate: function(d) {
+    return [d.getYear() + 1900, d.getMonth() + 1, d.getDate()].join("/") + " "
+      + [d.getHours(), d.getMinutes()].join(":");
+  },
   period: function(date) {
     var that = this;
     var start = new Date(parseInt(date));
-    var end = new Date(parseInt(date) + 86400 * 7 * 1000);
+    var end = new Date(parseInt(date) + 86400 * 6 * 1000);
     if( (new Date().getTime() - start.getTime()) < 86400 * 7 * 1000 ) return "本週";
     return [start,end].map(function(d) {
       return (that.pad(d.getMonth() + 1)) + "/" + (that.pad(d.getDate()));
-    }).join(" - ");
-    return [start,end].map(function(d) {
-      [d.getYear() + 1900, d.getMonth(), d.getDate()].join("/")
     }).join(" - ");
   },
 
   popupfunc: function(node,data,i) {
     var that = this;
+    var mobile = (that.width < that.rwdbreak);
     that.popup.style({
       display: (!data || data == that.lastdata ? "none" : "block")
     });
     var box = that.popup[0][0].getBoundingClientRect();
     if(data) {
+      var topbase = d3.event.clientY + document.body.scrollTop + data.r;
+      var isBottom = (mobile
+        ? (data.date.getDay() < 2)
+        : (topbase >= that.height - box.height - 25)
+      );
+      that.popup.select(".time").text(that.prettyDate(data.date));
       that.popup.selectAll(".entry .value").data(
         [data.distance + "公里", data.elapsed + "", data.rate + "km/s", data.index]
       ).text(function(it) { return it; });
       that.popup.style({
         position: "absolute",
-        top: ( d3.event.clientY + document.body.scrollTop + data.r + 25) + "px",
+        top: ( topbase + ( isBottom ? -box.height - 25 : 25)) + "px",
         left: ( d3.event.clientX - box.width / 2) + "px"
       });
+      that.popup.classed("bottom", isBottom);
     }
     if(node) {
       popdonut = that.popdonut[0][0];
@@ -160,7 +175,8 @@ Chart.prototype = {
         var pie = node.append("g").attr({class: "pie"});
         d.values.forEach(function(it) { delete it.parent; });
         node.append("text").attr({class: "weekday"}).text("週" + ["日","一","二","三","四","五","六"][i]);
-        pie.selectAll("path.data").data(d.values).enter().append("path").attr({class: "data"})
+        pie.selectAll("path.data").data(d.values.filter(function(it) { return !it.shadow; }))
+        .enter().append("path").attr({class: "data"})
         .on("click", function(d,i) { 
           d3.event.stopPropagation();
           d3.event.preventDefault = true;
@@ -176,9 +192,12 @@ Chart.prototype = {
       var node = d3.select(this);
       node.selectAll("g.navByMonth").data(d.values)
       .enter().append("g").attr({class: "navByMonth"}).on("click", function(month) {
+        var mobile = (that.width < that.rwdbreak);
         var date = new Date(that.activeDate.key, month).getTime();
         var lastoffset = document.body.scrollTop;
-        var offset = that.parsed.filter(function(d,i) { return parseInt(d.key) >date }).length * that.weekHeight;
+        var offset = that.parsed
+          .filter(function(d,i) { return parseInt(d.key) >date }).length
+          * that.weekHeight * (mobile ? 7 : 1);
         var maxoffset = document.body.getBoundingClientRect().height - window.innerHeight;
         offset += (that.box.top + that.xAxisHeight + that.config.margin - 20);
         //that.offset = offset = (offset > maxoffset ? maxoffset : offset);
@@ -218,7 +237,7 @@ Chart.prototype = {
     if(mobile) {
       this.weekHeight = (window.innerHeight - that.config.margin * 2) / 7;
       this.xAxisHeight = 0;
-      this.navDateWidth = 0;
+      this.navDateWidth = 45;
       this.labelsWidth = this.labelsWidth / 2;
     }
     this.dayWidth = (
@@ -226,8 +245,8 @@ Chart.prototype = {
       - 2 * this.config.margin - this.labelsPadding * 2
     ) / 7;
     this.height = ( mobile 
-      ? (( this.weekHeight * 7 )* ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin)
-      : (this.weekHeight * ( this.parsed.length + 1) + this.xAxisHeight + 2 * this.config.margin)
+      ? (( this.weekHeight * 7 )* ( this.parsed.length) + this.xAxisHeight + 2 * this.config.margin)
+      : (this.weekHeight * ( this.parsed.length) + this.xAxisHeight + 2 * this.config.margin)
     );
     this.height = (this.height > this.box.height ? this.height : this.box.height);
     this.radius = (this.radius > (this.weekHeight - 2 * this.weekPadding ) / 2
@@ -253,7 +272,9 @@ Chart.prototype = {
     });
     this.color = d3.scale.ordinal().range(["#009999","#ffaa00","#ff0000"]);
     this.rscale = d3.scale.linear().domain([0,this.maxIndex]).range([0,this.radius]);
-    this.pack = d3.layout.pack().size([this.dayWidth, this.weekHeight]).padding(6);
+    this.pack = d3.layout.pack()
+      .size([ this.dayWidth, this.weekHeight ])
+      .padding(6);
 
 
     this.parsed.map(function(d,i) {
@@ -296,8 +317,8 @@ Chart.prototype = {
         return [
           "translate(0,",
           (mobile
-            ? (50 + i * ( that.weekHeight * 7))
-            : (50 + i * ( that.weekHeight ))
+            ? ( i * ( that.weekHeight * 7))
+            : (i * ( that.weekHeight ) + that.xAxisHeight)
           ),
           ")"].join(" ");
       }
@@ -305,7 +326,7 @@ Chart.prototype = {
     .each(function(d,i) {
       var node = d3.select(this);
       node.select("g.labels").attr({
-        transform: "translate(0,-45)"
+        transform: "translate(0," + (mobile?0:-45) + ")"
       });
       node.selectAll("text").attr({
         "dominant-baseline": "middle",
@@ -314,9 +335,9 @@ Chart.prototype = {
       });
       node.select("line").attr((mobile?{
         x1: that.config.margin,
-        y1: -50,
+        y1: that.weekHeight * 6.5,
         x2: that.labelsWidth + that.labelsPadding + 7 * that.dayWidth,
-        y2: -50,
+        y2: that.weekHeight * 6.5,
       }:{
         x1: that.labelsWidth + that.labelsPadding,
         y1: 0,
@@ -328,13 +349,14 @@ Chart.prototype = {
         "stroke-dasharray": "2 3",
         "stroke-width": 1
       });
-      var dy = (mobile?[0,25,65,40,80,105,125]:[0,25,25,40,40,65,85])
+      var dy = (mobile?[0,25,65,40,80,105,135]:[0,25,25,40,40,65,95])
         .map(function(it) { return it + (mobile?that.config.margin:0)});
+      node.selectAll("text").attr({"dominant-baseline": "text-after-edge"});
       node.selectAll("text.label").attr({ "font-weight": 900, opacity: 0.5, "font-size": "0.7em" });
       node.select("text.distance.label").attr({ dy: dy[1], dx: that.labelsWidth});
-      node.select("text.elapsed.label").attr({ dy: dy[2],  dx: 60});
+      node.select("text.elapsed.label").attr({ dy: dy[2],  dx: that.labelsWidth/(mobile?1:2)});
       node.select("text.distance.value").attr({ dy: dy[3], dx: that.labelsWidth});
-      node.select("text.elapsed.value").attr({ dy: dy[4],  dx: 60});
+      node.select("text.elapsed.value").attr({ dy: dy[4],  dx: that.labelsWidth/(mobile?1:2)});
       node.select("text.period").attr({ dy: dy[0], dx: that.labelsWidth });
       node.select("text.index.label").attr({ dy: dy[5], dx: that.labelsWidth, });
       node.select("text.index.value").attr({ dy: dy[6], dx: that.labelsWidth, "font-size": "1.6em" });
@@ -344,8 +366,8 @@ Chart.prototype = {
           if(mobile) {
             return [
               "translate(",
-              that.width / 2,
-              that.weekHeight * (6 - i) * 0.8,
+              that.width / 2.5,
+              that.weekHeight * (6 - i) * 1.0,
               ")"
             ].join(" ");
           } else {
@@ -362,7 +384,9 @@ Chart.prototype = {
         var node = d3.select(this);
         node.select("text.weekday").attr({
           dx: that.width / 4,
-          display: (mobile?"block":"none")
+          display: (mobile?"block":"none"),
+          opacity: function(d,i) { return d.shadow?0.3:1; },
+          "dominant-baseline": "middle"
         });
         node.selectAll("path.data").transition().duration(500).attr({
           transform: function(d,i) {
@@ -401,8 +425,9 @@ Chart.prototype = {
     });
 
     this.navByDate.attr({
-      transform: "translate(" + (that.width - that.config.margin - that.navDateWidth) + "," + that.offset + ")",
-      display: (mobile?"none":"block")
+      transform: function() {
+        return "translate(" + (that.width - that.config.margin - that.navDateWidth) + "," + that.offset + ")";
+      }
     }).selectAll("g.navByYear").transition().duration(500).attr({
       transform: function(d,i) {
         var offset = (that.activeDate.key > d.key
@@ -419,11 +444,12 @@ Chart.prototype = {
       var node = d3.select(this);
       node.select("rect.year").attr({
         x: 0, y: 0, width: that.navDateWidth, height: 23,
-        fill: "rgba(0,0,0,0.2)"
+        fill: "rgba(0,0,0,0.15)"
       });
       node.select("text.year").text(data.key).attr({
         "dominant-baseline": "hanging",
         "font-size": that.config.fontSize * 1.2,
+        "font-weight": 900,
         dx: 5, dy: 5
       });
       node.selectAll("g.navByMonth").transition().duration(500)
@@ -440,13 +466,13 @@ Chart.prototype = {
       }).each(function(d,i) {
         var node = d3.select(this);
         node.select("rect.month").attr({
-          x: 0, y: 0, width: that.navDateWidth * 0.9, height: 23,
-          fill: "rgba(0,0,0,0.2)"
+          x: 5, y: 0, width: (that.navDateWidth > 5 ? that.navDateWidth - 5:0), height: 23,
+          fill: "rgba(0,0,0,0.1)"
         });
         node.select("text.month").text(d+"月").attr({
           "dominant-baseline": "hanging",
           "font-size": that.config.fontSize * 1.2,
-          dx: 5, dy: 5
+          dx: 10, dy: 5
         });
       });
     });
@@ -471,6 +497,7 @@ window.addEventListener("resize", function(it) {
 });
 
 window.addEventListener("scroll", function(it) {
+  var mobile = (chart.width < chart.rwdbreak);
   if(chart.scrollHandler) clearTimeout(chart.scrollHandler);
   chart.offset = document.body.scrollTop;
   chart.navByDate.attr({
