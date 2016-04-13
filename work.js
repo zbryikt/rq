@@ -10,7 +10,7 @@ Chart.prototype = {
     timeUnit: "分鐘",
     speedUnit: "公里/小時",
     distanceUnit: "公里",
-    premuim: false,
+    premuim: true,
     rankPalette: {colors: [
       {hex: "#777777"},
       {hex: "#5BC0DE"},
