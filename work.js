@@ -21,6 +21,13 @@ Chart.prototype = {
       {hex: "#D9534F"}
     ]}
   },
+  parseDate: function(d) {
+    var ret = new Date(d);
+    if(!isNaN(ret.getTime())) return ret;
+    ret = /(\d+)\.(\d+)\.(\d+) (\d+):(\d+):(\d+)/.exec(d);
+    if(!ret) return new Date(d);
+    return new Date(ret[1], ret[2], ret[3], ret[4], ret[5], ret[6]);
+  },
   typecolor: ["#009999","#ffaa00","#ff0000"],
   type: [
     {text: "訓練"},
@@ -71,9 +78,9 @@ Chart.prototype = {
     this.offset = 0;
   },
   update: function(newData) {
-    this.data = newData;
-    this.data.forEach(function(it) { it.date = new Date(it.date); })
     var that = this;
+    this.data = newData;
+    this.data.forEach(function(it) { it.date = that.parseDate(it.date); })
     this.parsed = d3.nest().key(function(it) {
       day = that.getDay(it.date);
       return parseInt((it.date.getTime() - day * 86400 * 1000) / 86400000) * 86400000;
