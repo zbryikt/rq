@@ -243,7 +243,7 @@ Chart.prototype = {
       labels.append("text").attr({class: "elapsed value"}).text(elapsed);
       labels.append("text").attr({class: "distance value"}).text(distance);
       labels.append("text").attr({class: "index value"})
-        .text(that.config.premium ? index : "白金會員限定")
+        .text(that.config.premium ? index : "-")
         .call(function(d,i) {
           if(mobile && !that.config.premium) {
             this.style({ "font-size": "0.9em" });
