@@ -10,7 +10,7 @@ Chart.prototype = {
     timeUnit: "分鐘",
     speedUnit: "公里/小時",
     distanceUnit: "公里",
-    premuim: true,
+    premium: true,
     rankPalette: {colors: [
       {hex: "#777777"},
       {hex: "#5BC0DE"},
@@ -154,8 +154,8 @@ Chart.prototype = {
         ? (that.getDay(data.date) < 2)
         : (topbase >= that.height - box.height - 25)
       );
-      that.popup.select(".time").text(that.prettyDate(data.date)).attr("href", data.url);
-      that.popup.select(".name").text(data.name);
+      that.popup.select(".time").text(that.prettyDate(data.date))
+      that.popup.select(".name").text(data.name).attr("href", data.url);
       that.popup.select("select")[0][0].value = data.category;
       that.popup.selectAll(".entry .value").data([
         data.distance + that.config.distanceUnit,
