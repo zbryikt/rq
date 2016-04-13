@@ -1,51 +1,67 @@
 $(document).ready(function() {
+$.ajax("data.json").done(function(rqdata) {
 
 Chart = function() { return this; };
 Chart.prototype = {
   config: {
     margin: 10,
     fontSize: 12,
-    bubbleMode: true
+    bubbleMode: true,
+    timeUnit: "分鐘",
+    speedUnit: "公里/小時",
+    distanceUnit: "公里",
+    premuim: false,
+    rankPalette: {colors: [
+      {hex: "#777777"},
+      {hex: "#5BC0DE"},
+      {hex: "#5CB85C"},
+      {hex: "#337AB7"},
+      {hex: "#2CE8CE"},
+      {hex: "#F0AD4E"},
+      {hex: "#D9534F"}
+    ]}
   },
   typecolor: ["#009999","#ffaa00","#ff0000"],
   type: [
-    {text: "休閒"},
     {text: "訓練"},
     {text: "比賽"},
+    {text: "其它"}
   ],
-  rankcolor: ["#eee","#fdd","#fbb","#f97","#f53","#f20"],
   rank: [
-    {text: "lv 1"},
-    {text: "lv 2"},
-    {text: "lv 3"},
-    {text: "lv 4"},
-    {text: "lv 5"},
-    {text: "lv 6"},
+    {text: "E"},
+    {text: "M"},
+    {text: "T"},
+    {text: "A"},
+    {text: "I"},
+    {text: "R"},
   ],
+  getDay: function(date) {
+     return (date.getDay() + 6 ) % 7;
+  },
+  
   preinit: function() {
     this.root = document.getElementById("container");
-    this.data = d3.range(200).map(function(d,i) {
-      var ret = [];
-      var count = (Math.random()>0.5?(Math.random()>0.8?3:2):1);
-      for(var i=0;i<count;i++) {
-        ret.push({
-          date: new Date(new Date().getTime() - 86400000 * d),
-          category: i + 1,
-          index: parseInt(Math.random() * 800 + 200) / 10,
-          elapsed: parseInt(Math.random() * 30000 + 3000) / 10,
-          distance: parseInt(Math.random() * 300 + 50) / 10,
-          rate: parseInt(Math.random() * 30 + 30) / 10,
-          ratio: d3.range(6).map(function(it) { return {value: Math.random()}; })
-        });
-      }
-      return ret;
-    });
-    this.data = this.data.reduce(function(a,b) { return a.concat(b); }, []);
+    this.data = [];
+    //this.data = rqdata;
   },
   init: function() {
     var that = this;
     this.popup = d3.select(this.root).select("#popup");
+    this.popup.select(".entry:last-of-type").style({
+      display: (that.config.premium ? "block" : "none")
+    });
+    this.popup.on("click", function() {
+      d3.event.preventDefault();
+      d3.event.cancelBubble = true;
+      return false;
+    });
+    this.popup.select("select").on("change", function() {
+      that.categoryOnChange(that.lastdata, value);
+    });
     this.svg = d3.select(this.root).select("svg");
+    this.today = this.svg.append("g").attr({class: "today"});
+    this.today.append("rect");
+    this.today.append("text");
     this.navByDate = this.svg.append("g").attr({class: "navByDate"});
     this.calendar = this.svg.append("g").attr({class: "calendar"});
     this.xAxisGroup = this.svg.append("g").attr({class: "axis horizontal"});
@@ -53,14 +69,24 @@ Chart.prototype = {
     this.popdonut = this.svg.append("g").attr({class: "popup-donut"});
     this.popdonut.selectAll("path.ratio").data([0,0,0,0,0,0]).enter().append("path").attr({class: "ratio"});
     this.offset = 0;
+  },
+  update: function(newData) {
+    this.data = newData;
+    this.data.forEach(function(it) { it.date = new Date(it.date); })
+    var that = this;
     this.parsed = d3.nest().key(function(it) {
-      return parseInt((it.date.getTime() - it.date.getDay() * 86400 * 1000) / 86400000) * 86400000;
+      day = that.getDay(it.date);
+      return parseInt((it.date.getTime() - day * 86400 * 1000) / 86400000) * 86400000;
     }).entries(this.data);
     this.parsed.sort(function(a,b) { return b.key - a.key });
     this.parsed.forEach(function(week) {
-      week.days = d3.nest().key(function(it) {
-        return it.date.getDay();
-      }).entries(week.values);
+      days = d3.nest().key(function(it) {
+        return that.getDay(it.date);
+      }).map(week.values);
+      week.days = [];
+      for(var i = 0; i < 7; i++) {
+        week.days.push({key: i, values: (days[i]?days[i]:[])});
+      }
     });
     var recentMaxWeekDay = d3.max(this.parsed[0].days.map(function(it) { return parseInt(it.key); }));
     for(var item,i = recentMaxWeekDay + 1; i < 7; i++) {
@@ -73,15 +99,24 @@ Chart.prototype = {
     this.dates.sort(function(a,b) { return b.key - a.key; });
     this.dates.forEach(function(it) { it.values = d3.map(it.values, function(it) { return it[1]; }).keys(); });
     this.dates.forEach(function(d,i) { d.values.sort(function(a,b) { return b - a; }); });
-
-    this.activeDate = this.dates[0];
-
+    if(!this.activeDate) this.activeDate = this.dates[0];
+    else {
+      var match = this.dates.filter(function(it) { return it.key == that.activeDate.key})[0];
+      if(match) this.activeDate = match;
+    }
   },
   pad: function(v, len) {
     if(typeof(len)=="undefined") len = 2;
     v = (v + "");
-    len = len - v.length;
+    len = len - v.length + 1;
     return (new Array(len>0?len:0).join("0") + v);
+  },
+  prettyElapse: function(d) {
+    return [
+      this.pad( parseInt(d / 3600), 2 ),
+      this.pad( parseInt((d % 3600) / 60 ), 2 ),
+      this.pad( parseInt(d % 60) )
+    ].join(":");
   },
   prettyDate: function(d) {
     return [d.getYear() + 1900, d.getMonth() + 1, d.getDate()].join("/") + " "
@@ -91,7 +126,8 @@ Chart.prototype = {
     var that = this;
     var start = new Date(parseInt(date));
     var end = new Date(parseInt(date) + 86400 * 6 * 1000);
-    if( (new Date().getTime() - start.getTime()) < 86400 * 7 * 1000 ) return "本週";
+    var delta = new Date().getTime() - start.getTime();
+    if( delta > 0 && delta < 86400 * 7 * 1000 ) return "本週";
     return [start,end].map(function(d) {
       return (that.pad(d.getMonth() + 1)) + "/" + (that.pad(d.getDate()));
     }).join(" - ");
@@ -100,6 +136,7 @@ Chart.prototype = {
   popupfunc: function(node,data,i) {
     var that = this;
     var mobile = (that.width < that.rwdbreak);
+    if(!that.lastdata && !data) return;
     that.popup.style({
       display: (!data || data == that.lastdata ? "none" : "block")
     });
@@ -107,13 +144,18 @@ Chart.prototype = {
     if(data) {
       var topbase = d3.event.clientY + document.body.scrollTop + data.r;
       var isBottom = (mobile
-        ? (data.date.getDay() < 2)
+        ? (that.getDay(data.date) < 2)
         : (topbase >= that.height - box.height - 25)
       );
-      that.popup.select(".time").text(that.prettyDate(data.date));
-      that.popup.selectAll(".entry .value").data(
-        [data.distance + "公里", data.elapsed + "", data.rate + "km/s", data.index]
-      ).text(function(it) { return it; });
+      that.popup.select(".time").text(that.prettyDate(data.date)).attr("href", data.url);
+      that.popup.select(".name").text(data.name);
+      that.popup.select("select")[0][0].value = data.category;
+      that.popup.selectAll(".entry .value").data([
+        data.distance + that.config.distanceUnit,
+        that.prettyElapse(data.elapsed),
+        data.rate + that.config.speedUnit,
+        (that.config.premium ? data.index : 0)
+      ]).text(function(it) { return it; });
       that.popup.style({
         position: "absolute",
         top: ( topbase + ( isBottom ? -box.height - 25 : 25)) + "px",
@@ -136,7 +178,7 @@ Chart.prototype = {
       that.partition({children: data.ratio});
       that.popdonut.selectAll("path.ratio").data(data.ratio).attr({
         fill: function(d,i) {
-          return that.rankcolor[i];
+          return that.config.rankPalette.colors[i + 1].hex;
         },
         stroke: "#fff",
         "stroke-width": 1,
@@ -161,18 +203,19 @@ Chart.prototype = {
             .padRadius(0.01)
             .startAngle(d.x)
             .endAngle(d.x + d.dx)
-            .innerRadius(r + 1 * (that.lastdata?t:1 - t))
-            .outerRadius(r + 7 * (that.lastdata?t:1 - t))();
+            .innerRadius(r + 2 + 1 * (that.lastdata?t:1 - t))
+            .outerRadius(r + 2 + 8 * (that.lastdata?t:1 - t))();
         };
       });
     that.lastdata = (that.lastdata == data ? null : data);
   },
   bind: function() {
     var that = this;
+    var mobile = (that.width < that.rwdbreak);
     this.xAxisGroup.selectAll("g.tick").data([0,1,2,3,4,5,6])
     .enter().append("g").attr({class: "tick"}).each(function(d,i) {
       var node = d3.select(this);
-      node.append("text").text("週"+["日","一","二","三","四","五","六"][d]);
+      node.append("text").text("週"+["一","二","三","四","五","六","日"][d]);
     });
     this.calendar.selectAll("g.week").data(this.parsed)
     .enter().append("g").attr({class: "week"}).each(function(d,i) {
@@ -182,17 +225,23 @@ Chart.prototype = {
       var hours = parseInt(elapsed / 360)/10;
       var minutes = parseInt((elapsed % 3600) / 60);
       var seconds = (elapsed % 60);
-      var distance = parseInt(d.values.reduce(function(a,b) { return a + b.distance; }, 0) * 10)/10 + "km";
+      var distance = parseInt(d.values.reduce(function(a,b) { return a + b.distance; }, 0) * 10)/10 + "公里";
       var index = parseInt(d.values.reduce(function(a,b) { return a + b.index; }, 0) * 10)/10;
       elapsed = (hours?hours + "小時": minutes + "分鐘");
       node.append("line");
       labels.append("text").attr({class: "period value"}).text(that.period(d.key));
       labels.append("text").attr({class: "elapsed label"}).text("總時間");
-      labels.append("text").attr({class: "distance label"}).text("總長");
-      labels.append("text").attr({class: "index label"}).text("壓力指數");
+      labels.append("text").attr({class: "distance label"}).text("總距離");
+      labels.append("text").attr({class: "index label"}).text("訓練指數");
       labels.append("text").attr({class: "elapsed value"}).text(elapsed);
       labels.append("text").attr({class: "distance value"}).text(distance);
-      labels.append("text").attr({class: "index value"}).text(index);
+      labels.append("text").attr({class: "index value"})
+        .text(that.config.premium ? index : "白金會員限定")
+        .call(function(d,i) {
+          if(mobile && !that.config.premium) {
+            this.style({ "font-size": "0.9em" });
+          }
+        });
       node.selectAll("g.day").data(d.days).enter().append("g").attr({class: "day"})
       .each(function(d,i) {
         var node = d3.select(this);
@@ -212,19 +261,17 @@ Chart.prototype = {
     .enter().append("g").attr({class: "navByYear"}).on("click", function(d) {
       that.activeDate = d;
       that.render();
-    }).each(function(d,i) {
+    })
+    this.navByDate.selectAll("g.navByYear").each(function(d,i) {
       var node = d3.select(this);
       node.selectAll("g.navByMonth").data(d.values)
       .enter().append("g").attr({class: "navByMonth"}).on("click", function(month) {
-        var mobile = (that.width < that.rwdbreak);
         var date = new Date(that.activeDate.key, month).getTime();
         var lastoffset = document.body.scrollTop;
         var offset = that.parsed
-          .filter(function(d,i) { return parseInt(d.key) >date }).length
+          .filter(function(d,i) { return parseInt(d.key) > date }).length
           * that.weekHeight * (mobile ? 7 : 1);
-        var maxoffset = document.body.getBoundingClientRect().height - window.innerHeight;
-        offset += (that.box.top + that.xAxisHeight + that.config.margin - 20);
-        //that.offset = offset = (offset > maxoffset ? maxoffset : offset);
+        offset += (that.root.getBoundingClientRect().top + lastoffset + that.xAxisHeight + that.config.margin - 20);
         d3.select(document.body).transition().duration(1000).tween("scrolltop", function() {
           return function(t) {
             this.scrollTop = (1 - t) * lastoffset + t * offset;
@@ -262,10 +309,6 @@ Chart.prototype = {
     this.xAxisHeight = 60;
     this.rwdbreak = 800;
     var mobile = (that.width < that.rwdbreak);
-    // hard coded day width - not recommend
-    //this.dayWidth = 0; // 0 for auto
-    //var calWidth = this.width - this.navDateWidth - this.labelsWidth - 2 * this.config.margin - this.labelsPadding;
-    //this.dayWidth = (this.dayWidth * 7 > calWidth ? calWidth / 7 : this.dayWidth);
     if(mobile) {
       this.weekHeight = (window.innerHeight - that.config.margin * 2) / 7;
       this.xAxisHeight = 0;
@@ -285,7 +328,6 @@ Chart.prototype = {
         ? ( this.weekHeight - 2 * this.weekPadding ) / 2 
         : ( this.radius < 24 ? 24 : this.radius )
     );
-    //this.dayWidth = (this.dayWidth - 2 * this.dayPadding >= this.radius * 2? this.dayWidth : this.radius * 2);
     this.svg.attr({
       width: this.width,
       height: this.height,
@@ -302,8 +344,9 @@ Chart.prototype = {
         that.partition(root);
       });
     });
-    this.color = d3.scale.ordinal().range(that.typecolor);
-    this.rscale = d3.scale.linear().domain([0,this.maxIndex]).range([0,this.radius]);
+    this.color = d3.scale.ordinal().domain([0,1,2]).range(that.typecolor);
+    //this.rscale = d3.scale.linear().domain([0,40,this.maxIndex]).range([5,this.radius,this.radius]);
+    this.rscale = d3.scale.linear().domain([0,40,this.maxIndex]).range([5,this.radius/2,this.radius/2]);
     this.pack = d3.layout.pack()
       .size([ this.dayWidth, this.weekHeight ])
       .padding(6);
@@ -312,13 +355,17 @@ Chart.prototype = {
     this.parsed.map(function(d,i) {
       d.days.map(function(d,i) {
         var sum = d.values.reduce(function(a,b) { return a + b.value; }, 0)
-        d.radius = that.rscale(sum);
+        d.radius = that.rscale(20) //sum);
+        len = d.values.length;
         d.values.map(function(it,i) {
           it.a = it.x;
           it.da = it.dx;
           it.outradius = d.radius;
+          it.r = (that.config.premium ? that.rscale(it.value) : that.rscale(20));
+          it.x = d.radius + (len > 1 ? Math.cos(Math.PI * 2 * i / len) * it.r * 1.2 : 0);
+          it.y = d.radius + (len > 1 ? Math.sin(Math.PI * 2 * i / len) * it.r * 1.2 : 0);
         });
-        that.pack.size([d.radius * 2, d.radius * 2]).nodes({children: d.values});
+        //that.pack.size([d.radius * 2, d.radius * 2]).nodes({children: d.values});
       });
     });
 
@@ -358,7 +405,7 @@ Chart.prototype = {
     .each(function(d,i) {
       var node = d3.select(this);
       node.select("g.labels").attr({
-        transform: "translate(0," + (mobile?0:-45) + ")"
+        transform: "translate(10," + (mobile?0:-45) + ")"
       });
       node.selectAll("text").attr({
         "dominant-baseline": "middle",
@@ -394,12 +441,18 @@ Chart.prototype = {
       node.select("text.index.value").attr({ dy: dy[6], dx: that.labelsWidth, "font-size": "1.6em" });
       node.selectAll("g.day")
       .attr({
+        opacity: function(d,i) {
+          var entry = d.values[0];
+          if(!entry) return 0.3;
+          if(entry.date.getTime() > new Date().getTime()) return 0.3;
+          return 1;
+        },
         transform: function(d,i) { 
           if(mobile) {
             return [
               "translate(",
               that.width / 2.5,
-              that.weekHeight * (6 - i) * 1.0,
+              that.weekHeight * (6 - ( i + 6 ) % 7) * 1.0,
               ")"
             ].join(" ");
           } else {
@@ -433,7 +486,10 @@ Chart.prototype = {
             );
           },
           fill: function(d,i) { return that.color(d.category); },
-          stroke: "#fff"
+          stroke: function(d,i) {
+            return (d.index > 40 ? "#ff0" : "#fff");
+          },
+          "stroke-width": 2
         }).attrTween("d", function(d,i) {
           return function(t) {
             return (that.config.bubbleMode
@@ -494,6 +550,9 @@ Chart.prototype = {
         },
         opacity: function(d,i) {
           return (that.activeDate.key == data.key ? 1 : 0)
+        },
+        display: function(d,i) {
+          return (that.activeDate.key == data.key ? "block" : "none")
         }
       }).each(function(d,i) {
         var node = d3.select(this);
@@ -520,7 +579,7 @@ Chart.prototype = {
       node.select("rect").attr({
         width: that.config.fontSize,
         height: that.config.fontSize,
-        fill: (i>2?that.rankcolor[i - 3]:that.typecolor[i])
+        fill: (i>2?that.config.rankPalette.colors[i - 2].hex:that.typecolor[i])
       });
       node.select("text").attr({
         dx: that.config.fontSize * 1.5,
@@ -529,17 +588,72 @@ Chart.prototype = {
         opacity: 0.8
       }).text(d.text);
     });
+    var order = this.parsed.map(function(d,i) {
+      var offset = (new Date().getTime() - d.key) / ( 86400 * 1000 * 7);
+      return [offset > 0 && offset < 1, i];
+    }).filter(function(it) { return it[0]; })[0];
+    if(order) {
+      this.today.attr({
+        transform: [
+          "translate(",
+          (mobile
+            ? that.width / 2.5 - that.radius
+            : that.dayWidth * (0.5 + (new Date().getDay() + 6 ) % 7) + that.config.margin
+          ),
+          (mobile 
+            ? that.weekHeight * order[1] * 7 + that.config.margin 
+              + that.weekHeight * ((6 - ( new Date().getDay() + 6 ) % 7) - 0.4)
+            : that.xAxisHeight + that.weekHeight * (0.1 + order[1]) + that.config.margin
+          ),
+          ")"
+        ].join(" ")
+      });
+      this.today.select("rect").attr({
+        x: 0, y: 0, rx: 5, ry: 5,
+        stroke: "#fc0", "stroke-width": 5,
+        fill: "none",
+        width: ( mobile ? that.width / 2: that.dayWidth),
+        height: that.weekHeight * 0.8,
+        display: "block"
+      });
+      this.today.select("text").attr(mobile
+        ? {
+          x: that.width / 2,
+          y: that.weekHeight * 0.5,
+          dx: -that.config.fontSize,
+          dy: 0,
+          fill: "#f90",
+          "text-anchor": "end",
+        } : {
+          x: that.dayWidth / 2,
+          y: that.weekHeight * 0.8,
+          dx: 0,
+          dy: -that.config.fontSize,
+          fill: "#f90",
+          "text-anchor": "middle",
+        }
+      ).text("今天");
+    } else {
+      this.today.attr({ display: "none" });
+    }
     this.scroll();
   },
   scroll: function() {
+    var that = this;
     var mobile = (chart.width < chart.rwdbreak);
+    var box = chart.svg[0][0].getBoundingClientRect();
     if(chart.scrollHandler) clearTimeout(chart.scrollHandler);
     chart.offset = document.body.scrollTop;
+    var offset = (-box.top > 0? -box.top : 0);
+    if( this.data && offset + window.innerHeight > box.height ) {
+      loadData();
+
+    }
     chart.navByDate.attr({
       transform: [
         "translate(",
         (chart.width - chart.config.margin - chart.navDateWidth),
-        chart.offset,
+        offset,
       ")"].join(" ")
     });
     chart.legendGroup.attr({
@@ -549,38 +663,84 @@ Chart.prototype = {
             "translate(",
             (chart.config.margin),
             (parseInt(
-              ( chart.offset + window.innerHeight / 4) / (chart.weekHeight * 7)
+              ( offset + window.innerHeight / 4) / (chart.weekHeight * 7)
             ) * (chart.weekHeight * 7) + window.innerHeight - 70),
             ")"
           ]
           : [
             "translate(",
             (chart.width - (chart.navDateWidth)),
-            (chart.offset + window.innerHeight - 70),
+            (offset + window.innerHeight - 70),
             ")"
           ]).join(" ")
       }
     })
+  },
+  categoryOnChange: function(node, value) {
+    // node: 被修改的訓練資料物件
+    // value: 0 - 訓練, 1 - 比賽, 2 - 其它
   }
 };
+
+var loadData = function() {
+  d3.select("#loader").style({display: "block"});
+  setTimeout(function() {
+    d3.select("#loader").style({display: "none"});
+    chart.data = chart.data.concat(genData(100,chart.data[chart.data.length - 1].date));
+    chart.update(chart.data);
+    chart.resize();
+    chart.bind();
+    chart.render();
+  }, 1000);
+};
+
+var genData = function(size, start) {
+  if(typeof(start) == "undefined") start = new Date();
+  var ret = d3.range(size).map(function(d,i) {
+    var ret = [];
+    var count = (Math.random()>0.5?(Math.random()>0.8?3:2):1);
+    for(var i=0;i<count;i++) {
+      ret.push({
+        date: new Date(start.getTime() - 86400000 * ( d - 20)),
+        category: i,
+        index: parseInt(Math.random() * 400 + 100) / 10,
+        elapsed: parseInt(Math.random() * 30000 + 3000) / 10,
+        distance: parseInt(Math.random() * 300 + 50) / 10,
+        rate: parseInt(Math.random() * 30 + 30) / 10,
+        name: "跑步訓練",
+        url: "#",
+        ratio: d3.range(6).map(function(it) { return {value: Math.random()}; })
+      });
+    }
+    return ret;
+  });
+  ret = ret.reduce(function(a,b) { return a.concat(b); }, []);
+  return ret;
+}
 
 var chart = new Chart();
 chart.preinit();
 chart.init();
+chart.update(rqdata);//genData(200));
 chart.resize();
 chart.bind();
 chart.render();
-
+/* reset scrollbar to today position */
 setTimeout(function() {
-  chart.config.bubbleMode = true;
-  chart.render();
-},1000);
+document.body.scrollTop = (
+  document.body.scrollTop + chart.svg[0][0].getBoundingClientRect().top + 
+  chart.xAxisHeight + chart.config.margin +
+  chart.weekHeight * chart.parsed.filter(function(it) { return it.key > new Date().getTime(); }).length
+);
+}, 1000);
+
 window.addEventListener("resize", function(it) {
   chart.resize();
   chart.bind();
   chart.render();
 });
 
-window.addEventListener("scroll", chart.scroll);
+window.addEventListener("scroll", function(it) { chart.scroll(); });
 window.addEventListener("click", function(it) { chart.popupfunc(); });
+});
 }); //endoffile

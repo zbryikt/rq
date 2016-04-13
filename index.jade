@@ -32,11 +32,15 @@ html(lang="en")
     #root
       #container
         svg
+        #loader(style="text-align: center;display:none;"): img(src="loader.svg")
         #popup
-          .time 2016/4/4 15:30
+          select(style="float:right")
+            option(value="0") 訓練
+            option(value="1") 比賽
+            option(value="2") 其它
+          a.time(href="#") 2016/4/4 15:30
           .name 跑步
-          .entry #[span 總里程數] #[span.value 123公里]
-          .entry #[span 訓練時間] #[span.value 50分鐘]
-          .entry #[span 平均配速] #[span.value 3.6m/h]
-          .entry #[span 總訓練指數] #[span.value 45.3]
-
+          .entry #[span 總里程數] #[span.value]
+          .entry #[span 訓練時數] #[span.value]
+          .entry #[span 平均配速] #[span.value]
+          .entry #[span 訓練指數] #[span.value]
