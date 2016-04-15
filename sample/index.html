@@ -1,0 +1,40 @@
+<meta charset="utf-8">
+<script type="text/javascript" src="assets/jquery/1.10.2/jquery.min.js"></script>
+<script type="text/javascript" src="assets/d3js/3.5.4/d3.min.js"></script>
+<link rel="stylesheet" type="text/css" href="index.css">
+<script type="text/javascript" src="rqcalendar.js"></script>
+<script type="text/javascript" src="work.js"></script>
+<div class="container">
+  <div id="rqcal-root">
+    <div id="rqcal-weeklabel"><span>週一</span><span>週二</span><span>週三</span><span>週四</span><span>週五</span><span>週六</span><span>週日</span></div>
+    <div id="rqcal-dateindex"></div>
+    <div id="rqcal-svgcontainer">
+      <svg></svg>
+      <div id="rqcal-legends">
+        <div id="rqcal-legends-intensity"></div>
+        <div id="rqcal-legends-type"></div>
+      </div>
+    </div>
+    <div id="rqcal-infos"></div>
+    <div id="rqcal-info-template">
+      <div class="time value"></div>
+      <div class="rqcal-info-entry"><span class="name">總時間</span> <span class="value"></span> <span class="unit"></span></div>
+      <div class="rqcal-info-entry"><span class="name">總距離</span> <span class="value"></span> <span class="unit"></span></div>
+      <div class="rqcal-info-entry"><span class="name">訓練指數</span> <span class="value"></span></div>
+    </div>
+    <div id="rqcal-popup">
+      <select style="float:right">
+        <option value="0">訓練</option>
+        <option value="1">比賽</option>
+        <option value="2">其它</option>
+      </select>
+      <div href="#" class="time"><span class="value"></span></div><a href="#" class="name"><span class="value"></span></a>
+      <div class="rqcal-popup-entry"><span class="name">總里程數</span> <span class="value"></span> <span class="unit"></span></div>
+      <div class="rqcal-popup-entry"><span class="name">訓練時數</span> <span class="value"></span></div>
+      <div class="rqcal-popup-entry"><span class="name">平均配速</span> <span class="value"></span> <span class="unit"></span></div>
+      <div id="rqcal-popup-entry-index" class="rqcal-popup-entry"><span class="name">訓練指數</span> <span class="value"></span></div>
+    </div>
+    <div id="rqcal-today"></div>
+  </div><br>
+  <div id="rqcal-loader"><img src="loader.svg"></div>
+</div>
