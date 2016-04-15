@@ -3,47 +3,54 @@
 
 html,body
   width: 100%
+  height: 100%
   margin: 0
   padding: 0
-  font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif
+  font-size: 14px
+  font-family: arial
 
-text
-  font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif
+*
+  box-sizing: border-box   
 
-#root
-  width: 100%
-  padding: 20px
-  box-sizing: border-box
+svg
+  background: #fff
 
-#container
-  width: 100%
-  max-width: 1142px
-  margin: auto
-  box-sizing: border-box
-
-path
-  cursor: pointer
-
-#popup
+#rqcal-weeklabel
   position: absolute
+  background: #fff
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1)
+  border: 1px solid #eee
+  z-index: index(order, 'weeklabel')
+  span
+    display: inline-block
+    text-align: center
+  &.fixed
+    position: fixed
+    top: 49px
+
+#rqcal-popup
+  position: absolute
+  z-index: index(order, 'popup')
   display: none
   background: #fff
+  width: 220px
   border: 1px solid #ccc
   box-shadow: 0 1px 3px rgba(0,0,0,0.1)
   padding: 5px 10px
   border-radius: 3px
   font-size: 14px
-  .name
+  a.name
+    display: block
     font-weight: 900
     padding-bottom: 5px
     border-bottom: 1px solid #ccc
     margin-bottom: 5px
 
-  .entry
+  .rqcal-popup-entry
     margin-bottom: 2px
-  .entry span:nth-of-type(1)
+  .rqcal-popup-entry span:nth-of-type(1)
     display: inline-block
-    width: 100px
+    width: 70px
   &:after
     position: absolute
     content: " "
@@ -65,6 +72,119 @@ path
     border-top: 0
     border-left: 0
 
-.navByDate
-  cursor: pointer
+line.weekline
+  opacity: 0.4
+  stroke: #000
+  stroke-dasharray: 2 3
+  stroke-width: 1
 
+#rqcal-svgcontainer
+  position: relative
+
+#rqcal-legends
+  position: absolute
+  z-index: index(order, 'legend')
+  bottom: 10px
+  position: fixed
+#rqcal-legends.nonfixed
+  right: 10px!important
+  position: absolute
+  
+#rqcal-legends.fixed
+
+.legend-entry
+  min-width: 45px
+  .legend-mark
+    margin-right: 5px
+  .legend-mark, .legend-name
+    display: inline-block
+
+#rqcal-legends-intensity
+  margin-bottom: 0
+  display: none
+
+@media(max-width: 800px)
+  .legend-entry
+    display: inline-block
+    margin-right: 15px
+  #rqcal-legends
+    width: 100%
+    height: 26px
+    padding: 3px 5px
+    background: #fff
+    border-top: 1px solid #ccc
+    bottom: 0
+    left: 0
+  #rqcal-legends-type, #rqcal-legends-intensity
+    position: absolute
+    bottom: 0
+    left: 0
+
+#rqcal-dateindex
+  position: absolute
+  z-index: index(order, 'dateindex')
+  .index-year, .index-month
+    padding: 2px 5px
+    margin: 0 0 2px
+    cursor: pointer
+  .index-year
+    background: rgba(0,0,0,0.15)
+  .index-month
+    background: rgba(0,0,0,0.1)
+    text-align: center
+    &:after
+      content: "月"
+      display: "block"
+      font-size: 0.7em
+  &.fixed
+    position: fixed
+    top: 50px
+
+.rqcal-info
+  position: absolute
+  padding: 5px 5px 0 0
+  text-align: right
+  .rqcal-info-entry
+    margin: 10px 0 0 10px
+    display: inline-block
+    span.name
+      display: block
+      line-height: 0.8em
+    span.unit
+      font-size: 0.8em
+      margin-left: -3px
+    span:first-of-type
+      font-size: 0.8em
+  .rqcal-info-entry:last-of-type
+    display: block
+  .value
+    font-weight: 900
+    font-size: 1.1em
+    font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif
+  .time.value
+    font-size: 0.9em
+@media(max-width: 480px)
+  .rqcal-info
+    .rqcal-info-entry
+      display: block
+
+#rqcal-info-template
+  display: none
+
+#rqcal-today
+  position: absolute
+  display: none
+  pointer-events: none
+  border: 2px solid #f00
+  z-index: index(order, 'today')
+  border-radius: 5px
+  &:after
+    content: "今天"
+    display: block
+    font-size: 0.8em
+    font-weight: 900
+    padding: 3px
+
+#rqcal-loader
+  display: none
+  text-align: center

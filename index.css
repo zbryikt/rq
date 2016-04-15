@@ -1,51 +1,60 @@
 html,
 body {
   width: 100%;
+  height: 100%;
   margin: 0;
   padding: 0;
-  font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  font-family: arial;
 }
-text {
-  font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif;
-}
-#root {
-  width: 100%;
-  padding: 20px;
+* {
   box-sizing: border-box;
 }
-#container {
-  width: 100%;
-  max-width: 1142px;
-  margin: auto;
-  box-sizing: border-box;
+svg {
+  background: #fff;
 }
-path {
-  cursor: pointer;
-}
-#popup {
+#rqcal-weeklabel {
   position: absolute;
+  background: #fff;
+  box-shadow: 0 1px 1px rgba(0,0,0,0.1);
+  border: 1px solid #eee;
+  z-index: 4;
+}
+#rqcal-weeklabel span {
+  display: inline-block;
+  text-align: center;
+}
+#rqcal-weeklabel.fixed {
+  position: fixed;
+  top: 49px;
+}
+#rqcal-popup {
+  position: absolute;
+  z-index: 5;
   display: none;
   background: #fff;
+  width: 220px;
   border: 1px solid #ccc;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   padding: 5px 10px;
   border-radius: 3px;
   font-size: 14px;
 }
-#popup .name {
+#rqcal-popup a.name {
+  display: block;
   font-weight: 900;
   padding-bottom: 5px;
   border-bottom: 1px solid #ccc;
   margin-bottom: 5px;
 }
-#popup .entry {
+#rqcal-popup .rqcal-popup-entry {
   margin-bottom: 2px;
 }
-#popup .entry span:nth-of-type(1) {
+#rqcal-popup .rqcal-popup-entry span:nth-of-type(1) {
   display: inline-block;
-  width: 100px;
+  width: 70px;
 }
-#popup:after {
+#rqcal-popup:after {
   position: absolute;
   content: " ";
   display: block;
@@ -64,13 +73,152 @@ path {
   border-right: 0;
   top: -7px;
 }
-#popup.bottom:after {
+#rqcal-popup.bottom:after {
   top: initial;
   bottom: -7px;
   border: 1px solid #ccc;
   border-top: 0;
   border-left: 0;
 }
-.navByDate {
+line.weekline {
+  opacity: 0.4;
+  stroke: #000;
+  stroke-dasharray: 2 3;
+  stroke-width: 1;
+}
+#rqcal-svgcontainer {
+  position: relative;
+}
+#rqcal-legends {
+  position: absolute;
+  z-index: 2;
+  bottom: 10px;
+  position: fixed;
+}
+#rqcal-legends.nonfixed {
+  right: 10px !important;
+  position: absolute;
+}
+#rqcal-legends.fixed,
+.legend-entry {
+  min-width: 45px;
+}
+#rqcal-legends.fixed .legend-mark,
+.legend-entry .legend-mark {
+  margin-right: 5px;
+}
+#rqcal-legends.fixed .legend-mark,
+.legend-entry .legend-mark,
+#rqcal-legends.fixed .legend-name,
+.legend-entry .legend-name {
+  display: inline-block;
+}
+#rqcal-legends-intensity {
+  margin-bottom: 0;
+  display: none;
+}
+@media (max-width: 800px) {
+  .legend-entry {
+    display: inline-block;
+    margin-right: 15px;
+  }
+  #rqcal-legends {
+    width: 100%;
+    height: 26px;
+    padding: 3px 5px;
+    background: #fff;
+    border-top: 1px solid #ccc;
+    bottom: 0;
+    left: 0;
+  }
+  #rqcal-legends-type,
+  #rqcal-legends-intensity {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+  }
+}
+#rqcal-dateindex {
+  position: absolute;
+  z-index: 3;
+}
+#rqcal-dateindex .index-year,
+#rqcal-dateindex .index-month {
+  padding: 2px 5px;
+  margin: 0 0 2px;
   cursor: pointer;
+}
+#rqcal-dateindex .index-year {
+  background: rgba(0,0,0,0.15);
+}
+#rqcal-dateindex .index-month {
+  background: rgba(0,0,0,0.1);
+  text-align: center;
+}
+#rqcal-dateindex .index-month:after {
+  content: "月";
+  display: "block";
+  font-size: 0.7em;
+}
+#rqcal-dateindex.fixed {
+  position: fixed;
+  top: 50px;
+}
+.rqcal-info {
+  position: absolute;
+  padding: 5px 5px 0 0;
+  text-align: right;
+}
+.rqcal-info .rqcal-info-entry {
+  margin: 10px 0 0 10px;
+  display: inline-block;
+}
+.rqcal-info .rqcal-info-entry span.name {
+  display: block;
+  line-height: 0.8em;
+}
+.rqcal-info .rqcal-info-entry span.unit {
+  font-size: 0.8em;
+  margin-left: -3px;
+}
+.rqcal-info .rqcal-info-entry span:first-of-type {
+  font-size: 0.8em;
+}
+.rqcal-info .rqcal-info-entry:last-of-type {
+  display: block;
+}
+.rqcal-info .value {
+  font-weight: 900;
+  font-size: 1.1em;
+  font-family: Merriweather, 'Helvetica Neue', Arial, sans-serif;
+}
+.rqcal-info .time.value {
+  font-size: 0.9em;
+}
+@media (max-width: 480px) {
+  .rqcal-info .rqcal-info-entry {
+    display: block;
+  }
+}
+#rqcal-info-template {
+  display: none;
+}
+#rqcal-today {
+  position: absolute;
+  display: none;
+  pointer-events: none;
+  border: 2px solid #f00;
+  z-index: 1;
+  border-radius: 5px;
+}
+#rqcal-today:after {
+  content: "今天";
+  display: block;
+  font-size: 0.8em;
+  font-weight: 900;
+  padding: 3px;
+}
+#rqcal-loader {
+  display: none;
+  text-align: center;
 }

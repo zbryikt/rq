@@ -1,8 +1,8 @@
 doctype html
 //- basic libraries: jquery(1.10.2), d3js(3.5.4), angularjs(1.2.3), bootstrap(3.0)/semantic-ui(0.9.3/0.9.5)
 //-                  fontawesome(4.4.0), reactjs(0.14.0)
-- var use = { cdn: true, og: false, favicon: true }
-- var lib = { jquery: true, d3js: true, angular: true, bootstrap: false, semantic: false, fontawesome: false, reactjs: false }
+- var use = { cdn: false, og: false, favicon: true }
+- var lib = { jquery: true, d3js: true, angular: false, bootstrap: false, semantic: false, fontawesome: false, reactjs: false }
 - var assets = "assets"
 - var favicon = "thumbnail.png"
 - var title = "template"
@@ -25,23 +25,87 @@ html(lang="en")
     // libraries
     include library.jade
     // custom files
-    link(href='https://fonts.googleapis.com/css?family=Merriweather',rel='stylesheet',type='text/css')
     link(rel="stylesheet",type="text/css",href="index.css")
-    script(type="text/javascript",src="chart.js")
+    link(href="https://rq.center4gaming.org/assets/86a7e7cf/css/bootstrap.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/assets/786e13cc/themes/smoothness/jquery-ui.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/css/c4g-font.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/css/c4g-d3.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/font-awesome/css/font-awesome.min.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/css/animate.min.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/css/creative.css",rel="stylesheet")
+    link(href="https://rq.center4gaming.org/css/site.css",rel="stylesheet")
+
+    script(type="text/javascript",src="rqcalendar.js")
     script(type="text/javascript",src="work.js")
   body
-    #root
-      #container
-        svg
-        #loader(style="text-align: center;display:none;"): img(src="loader.svg")
-        #popup
-          select(style="float:right")
-            option(value="0") 訓練
-            option(value="1") 比賽
-            option(value="2") 其它
-          .time(href="#") 2016/4/4 15:30
-          a.name(href="#") 跑步
-          .entry #[span 總里程數] #[span.value]
-          .entry #[span 訓練時數] #[span.value]
-          .entry #[span 平均配速] #[span.value]
-          .entry #[span 訓練指數] #[span.value]
+    .wrap(style="max-width:1200px;margin:auto")
+      nav#w0.mainheader.navbar.navbar-default.navbar-fixed-top(role='navigation')
+        .container
+          .navbar-header
+            button.navbar-toggle(type='button', data-toggle='collapse', data-target='#w0-collapse')
+              span.sr-only Toggle navigation
+              span.icon-bar
+              span.icon-bar
+              span.icon-bar
+            a.navbar-brand(href='/') RunningQuotient
+          #w0-collapse.collapse.navbar-collapse
+            ul#w1.navbar-nav.navbar-right.nav
+              li
+                a(href='/') 首頁
+              li
+                a(href='/workouts/index') 你要練什麼？
+              li.active
+                a(href='/calendar/index') 訓練日誌
+              li
+                a(href='/store/pricing') 升級
+              li.login.dropdown
+                a.dropdown-toggle(href='#', data-toggle='dropdown')
+                  | 嗨，
+                  span.label.label-warning
+                    | Kirby Wu
+                    span
+                      b.caret
+                ul#w2.dropdown-menu
+                  li
+                    a(href='/user/account', tabindex='-1') 帳號設定
+                  li
+                    a(href='/user/profile', tabindex='-1') 個人資料
+                  li
+                    a(href='/user/logout', data-method='post', tabindex='-1') 登出
+      .container
+        h1 訓練日誌
+        #rqcal-root
+          #rqcal-weeklabel
+            span 週一
+            span 週二
+            span 週三
+            span 週四
+            span 週五
+            span 週六
+            span 週日
+          #rqcal-dateindex
+          #rqcal-svgcontainer
+            svg
+            #rqcal-legends
+              #rqcal-legends-intensity
+              #rqcal-legends-type
+          #rqcal-infos
+          #rqcal-info-template
+            .time.value
+            .rqcal-info-entry #[span.name 總時間] #[span.value] #[span.unit]
+            .rqcal-info-entry #[span.name 總距離] #[span.value] #[span.unit]
+            .rqcal-info-entry #[span.name 訓練指數] #[span.value]
+          #rqcal-popup
+            select(style="float:right")
+              option(value="0") 訓練
+              option(value="1") 比賽
+              option(value="2") 其它
+            .time(href="#") #[span.value]
+            a.name(href="#") #[span.value]
+            .rqcal-popup-entry #[span.name 總里程數] #[span.value] #[span.unit]
+            .rqcal-popup-entry #[span.name 訓練時數] #[span.value]
+            .rqcal-popup-entry #[span.name 平均配速] #[span.value] #[span.unit]
+            .rqcal-popup-entry#rqcal-popup-entry-index #[span.name 訓練指數] #[span.value]
+          #rqcal-today
+        br
+        #rqcal-loader #[img(src="loader.svg")]

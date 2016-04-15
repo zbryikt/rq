@@ -3,60 +3,64 @@ $(document).ready(function() {
   var chart = plotdb.create(RQCalendar);
   chart.config = {
     margin: 10,
-    fontSize: 12,
-    bubbleMode: true,
+    padding: 10,
     timeUnit: "分鐘",
-    speedUnit: "公里/小時",
+    speedUnit: "/公里",
     distanceUnit: "公里",
     thresholdIndex: 40,
-    premium: true,
+    premium: false,
+    typePalette: {colors: [
+      {hex: "#009999", name: "訓練"},
+      {hex: "#ffaa00", name: "比賽"},
+      {hex: "#ff0000", name: "其它"}
+    ]},
     rankPalette: {colors: [
-      {hex: "#777777"},
-      {hex: "#5BC0DE"},
-      {hex: "#5CB85C"},
-      {hex: "#337AB7"},
-      {hex: "#2CE8CE"},
-      {hex: "#F0AD4E"},
-      {hex: "#D9534F"}
+      //{hex: "#777777", name: "-"},
+      {hex: "#5BC0DE", name: "E"},
+      {hex: "#5CB85C", name: "M"},
+      {hex: "#337AB7", name: "T"},
+      {hex: "#2CE8CE", name: "A"},
+      {hex: "#F0AD4E", name: "I"},
+      {hex: "#D9534F", name: "R"}
     ]}
   };
-  chart.on("lazyloading", function(lastDate) {
-    d3.select("#loader").style({display: "block"});
-    /* v replace this with your own code v */
-    newData = genData(10,lastDate);
-    /* ^ replace this with your own code ^ */
-    plotdb.update(chart, newData);
-  });
 
   $.ajax("data.json").done(function(rqdata) {
-
-    plotdb.init(chart);
+    plotdb.init(chart, document.getElementById("rqcal-root"));
     plotdb.update(chart, rqdata);
     plotdb.render(chart);
 
-    /* set scrollToToday = true if we need to reset scrollbar to today position */
-    if(typeof(scrollToToday) != "undefined") {
+    var loading = false;
+    chart.on("lazyloading", function(lastDate) {
+      /* sample data loader */
+      if(loading) return;
+      loading = true;
+      d3.select("#rqcal-loader").style({display: "block"});
       setTimeout(function() {
-      document.body.scrollTop = (
-        document.body.scrollTop + chart.svg[0][0].getBoundingClientRect().top + 
-        chart.xAxisHeight + chart.config.margin +
-        chart.weekHeight * chart.parsed.filter(function(it) { return it.key > new Date().getTime(); }).length
-      );
+        newData = genData(30,lastDate);
+        plotdb.update(chart, newData); // use update to insert data
+        d3.select("#rqcal-loader").style({display: "none"});
+        loading = false;
       }, 1000);
-    }
+    });
+
+    /* set scrollToToday = true if we need to reset scrollbar to today position */
+    if(false) chart.scrollToToday(false /* true for animation */);
   });
 });
 
 
 /* placeholder function to generate data without server */
+/* only for debugging purpose */
 var genData = function(size, start) {
   if(typeof(start) == "undefined") start = new Date();
   var ret = d3.range(size).map(function(d,i) {
     var ret = [];
     var count = (Math.random()>0.5?(Math.random()>0.8?3:2):1);
+    count = parseInt(Math.random() * 3) + 1;
     for(var i=0;i<count;i++) {
       ret.push({
-        date: new Date(start.getTime() - 86400000 * ( d - 20)),
+        date: new Date(start.getTime() - 86400000 * ( d + 1 )),
         category: i,
         index: parseInt(Math.random() * 400 + 100) / 10,
         elapsed: parseInt(Math.random() * 30000 + 3000) / 10,
