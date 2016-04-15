@@ -25,8 +25,10 @@ $(document).ready(function() {
     ]}
   };
 
+  plotdb.init(chart, document.getElementById("rqcal-root"));
+  d3.select("#rqcal-loader").style({display: "block"});
   $.ajax("data.json").done(function(rqdata) {
-    plotdb.init(chart, document.getElementById("rqcal-root"));
+    d3.select("#rqcal-loader").style({display: "none"});
     plotdb.update(chart, rqdata);
     plotdb.render(chart);
 
