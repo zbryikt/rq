@@ -9,6 +9,7 @@ $(document).ready(function() {
     distanceUnit: "公里",
     thresholdIndex: 40,
     minRadius: 5,
+    minIndex: 0.3,
     premium: false,
     typePalette: {colors: [
       {hex: "#009999", name: "訓練"},
