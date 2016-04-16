@@ -245,7 +245,8 @@ RQCalendar.prototype = {
     this.height = this.weekHeight * this.parsed.length + this.config.margin * 2 + this.xAxisHeight;
     this.radius = (this.dayWidth > this.dayHeight ? this.dayHeight : this.dayWidth ) / 2;
     this.svg.attr({width: this.width, height: this.height, viewBox: [0,0,this.width,this.height].join(" ")});
-    this.rscale = d3.scale.linear().domain([0,1,40,9999]).range([0,5,this.radius * 0.5,this.radius * 0.5]);
+    this.rscale = d3.scale.linear().domain([0,0.3,40,9999])
+      .range([0,this.config.minRadius,this.radius * 0.5,this.radius * 0.5]);
   },
   render: function() {
     var that = this;
@@ -271,10 +272,10 @@ RQCalendar.prototype = {
     }).each(function(d,i) {
       var node = d3.select(this);
       node.selectAll(".value")
-        .data([ d.period, d.elapsed, d.distance, (that.config.premium ? d.index : "-") ])
+        .data([ d.period, parseInt(d.elapsed/60) + "時" + (d.elapsed%60) + "分", parseInt(d.distance), (that.config.premium ? d.index : "-") ])
         .text(function(it) { return it; });
       node.selectAll(".unit")
-        .data([ that.config.timeUnit, that.config.distanceUnit])
+        .data([ that.config.distanceUnit])
         .text(function(it) { return it; });
 
     });
