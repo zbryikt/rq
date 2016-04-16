@@ -31,6 +31,10 @@ $(document).ready(function() {
   d3.select("#rqcal-loader").style({display: "block"});
   $.ajax("data.json").done(function(rqdata) {
     d3.select("#rqcal-loader").style({display: "none"});
+    plotdb.update(chart, [
+      {date: new Date(),fake: true},
+      {date: new Date(new Date().getTime() - 86400000 * 13),fake: true}
+    ]);
     plotdb.update(chart, rqdata);
     plotdb.render(chart);
 

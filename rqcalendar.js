@@ -82,7 +82,6 @@ RQCalendar.prototype = {
     });
     parsed = d3.nest().key(function(it) {
       day = that.aux.getDay(it.date);
-      //key = parseInt((it.date.getTime() - day * 86400 * 1000) / 86400000) - 16839;
       return parseInt((it.date.getTime() + 8 * 3600000 - day * 86400 * 1000) / 86400000) * 86400000;
     }).entries(data);
 
@@ -99,36 +98,14 @@ RQCalendar.prototype = {
     omit = [];
     for(var i=0, start = this.parsed[0].key;i<this.parsed.length;i++) {
       var time = start - ((i + omit.length) * 86400 * 7 * 1000);
-      if(this.parsed[i].key != time) {
-        omit.push(that.weekInit({key: time}));
+      if((parseInt(this.parsed[i].key)) != time) {
+        omit.push(that.weekInit({key: ""+time}));
         i--;
       }
     }
+    omit.forEach(function(it) { that.weekmap[it.key] = it; });
     this.parsed = this.parsed.concat(omit).sort(function(a,b) { return b.key - a.key; });
     parsed = parsed.concat(omit);
-    /*
-    parsed.forEach(function(week,weekidx) {
-      days = d3.nest().key(function(it) {
-        return that.aux.getDay(it.date);
-      }).map(week.values);
-      week.days = [];
-      for(var i = 0; i < 7; i++) {
-        week.days.push({
-          wkey: parseInt(week.key),
-          key: i,
-          values: (days[i]?days[i]:[])
-        });
-        week.days[i].values.forEach(function(d) { 
-          d.day = i;
-          d.wkey = parseInt(week.key);
-        });
-      }
-      week.elapsed = parseInt(week.values.reduce(function(a,b) { return a + b.elapsed; }, 0));
-      week.distance = parseInt(week.values.reduce(function(a,b) { return a + b.distance; }, 0) * 10)/10;
-      week.index = parseInt(week.values.reduce(function(a,b) { return a + b.index; }, 0) * 10)/10;
-      week.period = that.aux.period(week.key);
-    });
-    */
     days = parsed.reduce(function(a,b) { return a.concat(b.days); }, []);
     this.days = (this.days || []).concat(days);
     var lastday = d3.max(this.parsed[0].days.map(function(it) { return parseInt(it.key); }));
