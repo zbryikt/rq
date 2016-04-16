@@ -14,6 +14,8 @@ RQCalendar.prototype = {
     this.legendsIntensity = this.root.select("#rqcal-legends-intensity");
     this.popuppanel = this.root.select("#rqcal-popup")
     .on("click", function() {
+      var src = (d3.event.target || d3.event.srcElement);
+      if(src && src.parentNode.nodeName == "A") return;
       d3.event.cancelBubble = true;
       d3.event.preventDefault();
       return false;
@@ -149,7 +151,6 @@ RQCalendar.prototype = {
       var node = d3.select(this);
       node.selectAll("rect").data([0])
       .enter().append("rect").attr({width: 20,height:20,x:0,y:0,fill: "rgba(0,0,0,0.01)"})
-      .on("click", function(d,i) { console.log(d); });
       node.selectAll("circle.data").data(d.values)
       .enter().append("circle").attr({class: "data"})
       .on("click", function(d,i) {
@@ -256,7 +257,7 @@ RQCalendar.prototype = {
     }).each(function(d,i) {
       var node = d3.select(this);
       node.selectAll(".value")
-        .data([ d.period, parseInt(d.elapsed/60) + "時" + (d.elapsed%60) + "分", parseInt(d.distance), (that.config.premium ? d.index : "-") ])
+        .data([ d.period, parseInt(d.elapsed/3600) + "時" + parseInt((d.elapsed%3600)/60) + "分", parseInt(d.distance), (that.config.premium ? d.index : "-") ])
         .text(function(it) { return it; });
       node.selectAll(".unit")
         .data([ that.config.distanceUnit])
@@ -436,7 +437,7 @@ RQCalendar.prototype = {
         },
         top: function() {
           return ((that.mobile
-            ? m + that.woffset(d.wkey) * that.weekHeight + that.xAxisHeight + that.dayHeight * ( d.day + 1)
+            ? m + that.woffset(d.wkey) * that.weekHeight + that.xAxisHeight + that.dayHeight * ( 7 - d.day)
             : m + that.woffset(d.wkey) * that.weekHeight + that.xAxisHeight + cy + r + 20
           ) + that.base.top )+ "px";
         }
