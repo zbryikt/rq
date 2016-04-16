@@ -1,9 +1,10 @@
 var module = {};
-
+var html = null;
 
 function RQCalendar() { return this; };
 RQCalendar.prototype = {
   init: function() {
+    html = document.querySelector("html");
     var that = this;
     this.root = d3.select(this.root);
     this.svg = this.root.select("svg");
@@ -176,11 +177,13 @@ RQCalendar.prototype = {
         var date = new Date(year.key, d).getTime();
         var count = that.parsed.filter(function(it) { return parseInt(it.key) > date; }).length;
         var offset = ( that.base.top + that.config.margin + that.xAxisHeight + that.weekHeight * count );
-        var lastoffset = document.body.scrollTop;
-        d3.select(document.body).transition().duration(1000).tween("scrolltop", function() {
-          return function(t) {
-            this.scrollTop = (1 - t) * lastoffset + t * offset;
-          }
+        var lastoffset = (document.body.scrollTop || html.scrollTop);
+        [d3.select(document.body), d3.select(html)].map(function(node) {
+          node.transition().duration(1000).tween("scrolltop", function() {
+            return function(t) {
+              this.scrollTop = (1 - t) * lastoffset + t * offset;
+            }
+          });
         });
       });
     });
@@ -204,8 +207,8 @@ RQCalendar.prototype = {
     var box = this.root[0][0].getBoundingClientRect();
     this.config.fontSize = 12;
     this.base = {
-      top: this.svg[0][0].getBoundingClientRect().top + document.body.scrollTop,
-      left: this.svg[0][0].getBoundingClientRect().left + document.body.scrollLeft
+      top: this.svg[0][0].getBoundingClientRect().top + (document.body.scrollTop || html.scrollTop),
+      left: this.svg[0][0].getBoundingClientRect().left + (document.body.scrollLeft || html.scrollLeft)
     };
     this.vpHeight = window.innerHeight;
     this.width = box.width;
@@ -288,15 +291,15 @@ RQCalendar.prototype = {
         return (that.woffset(d.key) + (that.mobile?0:0.5)) * that.weekHeight + m + that.xAxisHeight;
       }
     });
-    var offset = that.svg[0][0].getBoundingClientRect().top + document.body.scrollTop;
+    var offset = that.svg[0][0].getBoundingClientRect().top + (document.body.scrollTop || html.scrollTop);
     this.root.select("#rqcal-dateindex").style({
-      right: (window.innerWidth + m - (
+      right: (document.body.clientWidth + m - (
         that.svg[0][0].getBoundingClientRect().left +
         that.svg[0][0].getBoundingClientRect().width
       )) + "px"
     });
     this.legends.style({
-      right: (window.innerWidth + m - (
+      right: (document.body.clientWidth + m - (
           that.svg[0][0].getBoundingClientRect().left +
           that.svg[0][0].getBoundingClientRect().width
         )) + "px"
@@ -389,21 +392,24 @@ RQCalendar.prototype = {
     var that = this;
     if(!anim) {
       document.body.scrollTop = (that.todayTop - that.dayHeight * 1.5);
+      html.scrollTop = (that.todayTop - that.dayHeight * 1.5);
       return;
     }
-    d3.select(document.body).transition().duration(1000).tween("scrolltop", function() {
-      var lasttop = document.body.scrollTop;
-      return function(t) {
-        this.scrollTop = (1 - t) * lasttop + t * (that.todayTop - that.dayHeight * 1.5);
-      }
+    [d3.select(html),d3.select(document.body)].map(function(node) {
+      node.transition().duration(1000).tween("scrolltop", function() {
+        var lasttop = (document.body.scrollTop || html.scrollTop);
+        return function(t) {
+          this.scrollTop = (1 - t) * lasttop + t * (that.todayTop - that.dayHeight * 1.5);
+        }
+      });
     });
   },
   scroll: function() {
     var that = this;
     var box = that.svg[0][0].getBoundingClientRect();
-    var docbottom = document.body.scrollTop + window.innerHeight;
+    var docbottom = (document.body.scrollTop || html.scrollTop) + window.innerHeight;
     var svgbottom = that.base.top + box.height;
-    if(that.base.top + that.height <= document.body.scrollTop + window.innerHeight) {
+    if(that.base.top + that.height <= (document.body.scrollTop || html.scrollTop) + window.innerHeight) {
       var date = new Date(
         d3.min(this.parsed[this.parsed.length - 1].days.map(function(it) {
           if(!it.values.length) return 0;
