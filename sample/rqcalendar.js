@@ -72,7 +72,14 @@ RQCalendar.prototype = {
 
   update: function(data, reset) {
     var that = this;
-    data.forEach(function(it) { it.date = that.aux.date(it.date); });
+    data.forEach(function(it) {
+      it.date = that.aux.date(it.date);
+      if(!it.category) it.category = 0;
+      if(!it.index) it.index = 0;
+      if(!it.elapsed) it.elapsed = 0;
+      if(!it.distance) it.distance = 0;
+      if(!it.rate) it.rate = 0;
+    });
     parsed = d3.nest().key(function(it) {
       day = that.aux.getDay(it.date);
       //key = parseInt((it.date.getTime() - day * 86400 * 1000) / 86400000) - 16839;
@@ -245,7 +252,8 @@ RQCalendar.prototype = {
     this.height = this.weekHeight * this.parsed.length + this.config.margin * 2 + this.xAxisHeight;
     this.radius = (this.dayWidth > this.dayHeight ? this.dayHeight : this.dayWidth ) / 2;
     this.svg.attr({width: this.width, height: this.height, viewBox: [0,0,this.width,this.height].join(" ")});
-    this.rscale = d3.scale.linear().domain([0,1,40,9999]).range([0,5,this.radius * 0.5,this.radius * 0.5]);
+    this.rscale = d3.scale.linear().domain([0,0.3,40,9999])
+      .range([0,this.config.minRadius,this.radius * 0.5,this.radius * 0.5]);
   },
   render: function() {
     var that = this;
@@ -271,10 +279,10 @@ RQCalendar.prototype = {
     }).each(function(d,i) {
       var node = d3.select(this);
       node.selectAll(".value")
-        .data([ d.period, d.elapsed, d.distance, (that.config.premium ? d.index : "-") ])
+        .data([ d.period, parseInt(d.elapsed/60) + "時" + (d.elapsed%60) + "分", parseInt(d.distance), (that.config.premium ? d.index : "-") ])
         .text(function(it) { return it; });
       node.selectAll(".unit")
-        .data([ that.config.timeUnit, that.config.distanceUnit])
+        .data([ that.config.distanceUnit])
         .text(function(it) { return it; });
 
     });
@@ -335,7 +343,7 @@ RQCalendar.prototype = {
       transform: function(d,i) {
         if(that.mobile) return that.aux.translate(
           m + that.infoWidth,
-          m + that.woffset(d.wkey) * that.weekHeight + that.xAxisHeight + that.dayHeight * d.key
+          m + that.woffset(d.wkey) * that.weekHeight + that.xAxisHeight + that.dayHeight * (6 - d.key)
         );
         return that.aux.translate(
           m + that.infoWidth + that.dayWidth * d.key,
@@ -370,7 +378,7 @@ RQCalendar.prototype = {
         cy: function(v,i) {
           return that.dayHeight / 2 + (len>1?(that.radius / 2) * Math.sin(Math.PI * 2 * i / len):0);
         },
-        r: function(v,i) { return that.rscale(v.index); },
+        r: function(v,i) { return (v.fake?0:that.rscale(that.config.premium ? v.index : 10)); },
         fill: function(v,i) {
           return that.config.typePalette.colors[v.category].hex;
         },
@@ -384,7 +392,7 @@ RQCalendar.prototype = {
     todayWeek = (today.getTime() - that.aux.getDay(today) * 86400000);
     todayKey = that.aux.getDay(today);
     this.todayTop = ((that.mobile
-      ? m + that.woffset(todayWeek) * that.weekHeight + that.xAxisHeight + that.dayHeight * todayKey
+      ? m + that.woffset(todayWeek) * that.weekHeight + that.xAxisHeight + that.dayHeight * ( 6 - todayKey)
       : m + that.woffset(todayWeek) * that.weekHeight + that.xAxisHeight
     ) + (that.base.top));
     this.today.style({
@@ -459,6 +467,7 @@ RQCalendar.prototype = {
       this.root.select("#rqcal-legends-intensity").style({display: "block"});
       this.root.select("#rqcal-legends-type").style({display: "none"});
       if(!that.config.premium) this.popuppanel.select("#rqcal-popup-entry-index").style({display: "none"})
+      this.popuppanel.select("a.name").attr("href", d.url);
       this.popuppanel.selectAll(".value").data([
         that.aux.prettyDate(d.date),
         d.name,
@@ -536,9 +545,9 @@ RQCalendar.prototype.aux = {
   date: function(d) {
     var ret = new Date(d);
     if(!isNaN(ret.getTime())) return ret;
-    ret = /(\d+)\.(\d+)\.(\d+) (\d+):(\d+):(\d+)/.exec(d);
     if(!ret) return new Date(d);
-    return new Date(ret[1], ret[2], ret[3], ret[4], ret[5], ret[6]);
+    ret = /(\d+)\.(\d+)\.(\d+) (\d+):(\d+):(\d+)/.exec(d);
+    if(ret) { return new Date(ret[1], ret[2] - 1, ret[3], ret[4], ret[5], ret[6]); }
   },
   getDay: function(d) {
     return (d.getDay() + 6 ) % 7;
@@ -563,7 +572,7 @@ RQCalendar.prototype.aux = {
     }).join(" - ");
   },
   cday: function(value) {
-    return "週" + ["日", "一", "二", "三", "四", "五", "六"][value];
+    return "週" + ["一", "二", "三", "四", "五", "六", "日"][value];
   },
   prettyDate: function(d) {
     var that = this;

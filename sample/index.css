@@ -19,7 +19,7 @@ svg {
   background: #fff;
   box-shadow: 0 1px 1px rgba(0,0,0,0.1);
   border: 1px solid #eee;
-  z-index: 4;
+  z-index: 3;
 }
 #rqcal-weeklabel span {
   display: inline-block;
@@ -141,7 +141,7 @@ line.weekline {
 }
 #rqcal-dateindex {
   position: absolute;
-  z-index: 3;
+  z-index: 4;
 }
 #rqcal-dateindex .index-year,
 #rqcal-dateindex .index-month {
@@ -150,10 +150,10 @@ line.weekline {
   cursor: pointer;
 }
 #rqcal-dateindex .index-year {
-  background: rgba(0,0,0,0.15);
+  background: #d7d7d7;
 }
 #rqcal-dateindex .index-month {
-  background: rgba(0,0,0,0.1);
+  background: #f0f0f0;
   text-align: center;
 }
 #rqcal-dateindex .index-month:after {
