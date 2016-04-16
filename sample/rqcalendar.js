@@ -252,7 +252,7 @@ RQCalendar.prototype = {
     this.height = this.weekHeight * this.parsed.length + this.config.margin * 2 + this.xAxisHeight;
     this.radius = (this.dayWidth > this.dayHeight ? this.dayHeight : this.dayWidth ) / 2;
     this.svg.attr({width: this.width, height: this.height, viewBox: [0,0,this.width,this.height].join(" ")});
-    this.rscale = d3.scale.linear().domain([0,0.3,40,9999])
+    this.rscale = d3.scale.linear().domain([0,this.config.minIndex,40,9999])
       .range([0,this.config.minRadius,this.radius * 0.5,this.radius * 0.5]);
   },
   render: function() {
